@@ -1,0 +1,24 @@
+{
+  "name": "susang",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run hosting:deploy",
+    "hosting:deploy": "npm run build && npx firebase-tools deploy --only hosting",
+    "hosting:preview": "npm run build && npx firebase-tools hosting:channel:deploy preview",
+    "migrate:firebase": "node --env-file=.env scripts/migrate-static-data-to-firebase.mjs"
+  },
+  "dependencies": {
+    "firebase": "^12.12.0",
+    "vue": "^3.5.32",
+    "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "vite": "^8.0.9"
+  }
+}
