@@ -1,9 +1,8 @@
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { signOut } from 'firebase/auth'
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -18,6 +17,12 @@ import { auth, db, firestoreDatabaseId, hasRequiredConfig, storage } from '../fi
 const router = useRouter()
 const CATEGORY_OPTIONS = ['camera', 'lens', 'grip', 'monitor', 'intercom', 'light', 'set']
 
+function normalizeCategory(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+}
+
 const products = ref([])
 const loading = ref(true)
 const isSaving = ref(false)
@@ -25,6 +30,7 @@ const isUploading = ref(false)
 const isDeleting = ref(false)
 const errorMessage = ref('')
 const selectedId = ref('')
+const activeCategoryTab = ref(CATEGORY_OPTIONS[0])
 
 const form = reactive({
   category: 'camera',
@@ -39,17 +45,47 @@ const form = reactive({
 })
 
 const selectedProduct = computed(() => products.value.find((item) => item.id === selectedId.value))
-const groupedProducts = computed(() => {
-  const grouped = CATEGORY_OPTIONS.map((category) => ({
-    category,
-    items: products.value.filter((item) => (item.category || 'etc') === category),
-  })).filter((group) => group.items.length > 0)
+const categoryTabs = computed(() => {
+  const tabMap = new Map(CATEGORY_OPTIONS.map((category) => [category, []]))
+  const etcItems = []
 
-  const extras = products.value.filter((item) => !CATEGORY_OPTIONS.includes(item.category))
-  if (extras.length) grouped.push({ category: 'etc', items: extras })
+  products.value.forEach((item) => {
+    const category = normalizeCategory(item.category)
+    if (tabMap.has(category)) {
+      tabMap.get(category).push(item)
+    } else {
+      etcItems.push(item)
+    }
+  })
 
-  return grouped
+  const tabs = CATEGORY_OPTIONS.map((category) => ({
+    key: category,
+    label: category.toUpperCase(),
+    items: tabMap.get(category),
+  }))
+
+  if (etcItems.length) {
+    tabs.push({
+      key: 'etc',
+      label: 'ETC',
+      items: etcItems,
+    })
+  }
+
+  return tabs
 })
+const activeTabProducts = computed(() => categoryTabs.value.find((tab) => tab.key === activeCategoryTab.value)?.items || [])
+
+watch(
+  categoryTabs,
+  (tabs) => {
+    if (!tabs.length) return
+    if (!tabs.some((tab) => tab.key === activeCategoryTab.value)) {
+      activeCategoryTab.value = tabs[0].key
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   if (!db) {
@@ -90,7 +126,7 @@ function resetForm() {
 
 function editProduct(item) {
   selectedId.value = item.id
-  form.category = item.category || 'camera'
+  form.category = normalizeCategory(item.category) || 'camera'
   form.section = item.section || ''
   form.name = item.name || ''
   form.brand = item.brand || ''
@@ -133,7 +169,7 @@ function parseOptions() {
 function buildPayload() {
   const options = parseOptions()
   return {
-    category: form.category,
+    category: normalizeCategory(form.category),
     section: form.section.trim(),
     name: form.name.trim(),
     brand: form.brand.trim(),
@@ -162,14 +198,11 @@ async function saveProduct() {
   errorMessage.value = ''
   try {
     const payload = buildPayload()
-    if (selectedProduct.value) {
-      await updateDoc(doc(db, 'product', selectedProduct.value.id), payload)
-    } else {
-      await addDoc(collection(db, 'product'), {
-        ...payload,
-        createdAt: serverTimestamp(),
-      })
+    if (!selectedProduct.value) {
+      errorMessage.value = '신규 상품은 "상품 추가하기" 페이지에서 등록해주세요.'
+      return
     }
+    await updateDoc(doc(db, 'product', selectedProduct.value.id), payload)
     resetForm()
   } catch (error) {
     errorMessage.value = error?.message || '상품 저장에 실패했습니다.'
@@ -251,15 +284,16 @@ async function logout() {
     <header class="admin-header">
       <h1>관리자 페이지</h1>
       <div class="admin-header-actions">
+        <RouterLink to="/admin/products/new" class="admin-add-button">상품 추가하기</RouterLink>
         <RouterLink to="/">메인 보기</RouterLink>
         <button type="button" @click="logout">로그아웃</button>
       </div>
     </header>
 
-    <section class="admin-section">
-      <h2>상품 등록/수정</h2>
+    <section v-if="selectedProduct" class="admin-section">
+      <h2>상품 수정</h2>
       <p class="admin-help">
-        아래 항목을 순서대로 채우면 됩니다. 이미지 업로드 후 첫 번째 이미지가 대표 이미지로 사용됩니다.
+        선택한 상품 정보를 수정할 수 있습니다. 신규 상품은 상단 "상품 추가하기" 버튼에서 등록할 수 있습니다.
       </p>
       <p v-if="!hasRequiredConfig" class="error">Firebase 환경변수 설정이 필요합니다.</p>
       <form class="admin-product-form" @submit.prevent="saveProduct">
@@ -307,32 +341,48 @@ async function logout() {
           </div>
         </div>
         <div class="admin-form-actions">
-          <button type="submit" :disabled="isSaving || isUploading">
-            {{ selectedProduct ? '수정 저장' : '신규 추가' }}
-          </button>
+          <button type="submit" :disabled="isSaving || isUploading || !selectedProduct">수정 저장</button>
           <button type="button" @click="resetForm">초기화</button>
         </div>
       </form>
-      <p v-if="errorMessage" class="error">{{ errorMessage }} (db: {{ firestoreDatabaseId }})</p>
     </section>
 
     <section class="admin-section">
       <h2>등록된 상품 관리</h2>
       <p v-if="loading">불러오는 중...</p>
-      <div v-for="group in groupedProducts" :key="group.category" class="admin-category-group">
-        <h3 class="admin-category-title">{{ group.category.toUpperCase() }}</h3>
-        <div class="admin-list">
-          <article v-for="item in group.items" :key="item.id" class="admin-item">
-            <strong>{{ item.name }}</strong>
-            <p>{{ item.category }} / {{ item.section }}</p>
-            <p>{{ item.brand }} · ₩{{ Number(item.discountPrice || 0).toLocaleString('ko-KR') }}</p>
-            <div class="admin-item-actions">
-              <button type="button" @click="editProduct(item)">수정</button>
-              <button type="button" class="danger" :disabled="isDeleting" @click="removeProduct(item.id)">삭제</button>
-            </div>
-          </article>
-        </div>
+      <div v-if="categoryTabs.length" class="admin-tabs">
+        <button
+          v-for="tab in categoryTabs"
+          :key="tab.key"
+          type="button"
+          class="admin-tab-button"
+          :class="{ active: activeCategoryTab === tab.key }"
+          @click="activeCategoryTab = tab.key"
+        >
+          {{ tab.label }} ({{ tab.items.length }})
+        </button>
       </div>
+      <div v-if="activeTabProducts.length" class="admin-list">
+        <article v-for="item in activeTabProducts" :key="item.id" class="admin-item">
+          <strong>{{ item.name }}</strong>
+          <p>{{ item.category }} / {{ item.section }}</p>
+          <p>{{ item.brand }} · ₩{{ Number(item.discountPrice || 0).toLocaleString('ko-KR') }}</p>
+          <div class="admin-item-actions">
+            <button type="button" @click="editProduct(item)">수정</button>
+            <button type="button" class="danger" :disabled="isDeleting" @click="removeProduct(item.id)">삭제</button>
+          </div>
+        </article>
+      </div>
+      <p v-else-if="!loading" class="admin-help">
+        선택한 카테고리에 등록된 상품이 없습니다.
+      </p>
+      <p v-if="selectedProduct" class="admin-help">
+        현재 선택된 상품: <strong>{{ selectedProduct.name }}</strong>
+      </p>
+      <p v-else class="admin-help">
+        수정할 상품을 목록에서 먼저 선택해주세요.
+      </p>
+      <p v-if="errorMessage" class="error">{{ errorMessage }} (db: {{ firestoreDatabaseId }})</p>
     </section>
   </main>
 </template>

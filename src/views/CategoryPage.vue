@@ -16,7 +16,7 @@ const categorySlugMap = {
 }
 
 const menuItems = [
-  { label: 'SET', to: '/category/set' },
+  { label: 'SET', to: '/set' },
   { label: 'CAMERA', to: '/camera' },
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
@@ -58,6 +58,9 @@ function isActiveMenu(label) {
       <h1>{{ category.name }}</h1>
       <p>{{ category.desc }}</p>
       <img :src="category.imageUrl" :alt="category.name" class="category-hero-image" />
+      <RouterLink v-if="category.name === 'SET'" to="/set" class="section-link category-set-link">
+        세트 장비 세부 목록 보기 &gt;
+      </RouterLink>
     </section>
 
     <section v-else class="category-landing">

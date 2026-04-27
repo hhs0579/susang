@@ -1,10 +1,11 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { cameraProducts } from '../data/cameraData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
 
 const menuItems = [
-  { label: 'SET', to: '/category/set' },
+  { label: 'SET', to: '/set' },
   { label: 'CAMERA', to: '/camera' },
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
@@ -18,6 +19,27 @@ function isActiveMenu(label) {
 }
 
 const { products: cameraItems } = useCategoryProducts('camera', cameraProducts)
+const activeBrand = ref('ALL')
+
+const categoryTabs = [
+  { label: 'SET', to: '/set' },
+  { label: 'CAMERA', to: '/camera' },
+  { label: 'LENS', to: '/lens' },
+  { label: 'GRIP', to: '/grip' },
+  { label: 'MONITOR', to: '/monitor' },
+  { label: 'LIGHT', to: '/category/light' },
+  { label: 'INTERCOM', to: '/intercom' },
+]
+
+const brandTabs = computed(() => {
+  const brands = [...new Set(cameraItems.value.map((item) => item.brand).filter(Boolean))]
+  return ['ALL', ...brands]
+})
+
+const filteredCameraItems = computed(() => {
+  if (activeBrand.value === 'ALL') return cameraItems.value
+  return cameraItems.value.filter((item) => item.brand === activeBrand.value)
+})
 </script>
 
 <template>
@@ -45,17 +67,33 @@ const { products: cameraItems } = useCategoryProducts('camera', cameraProducts)
       <h1>CAMERA</h1>
       <p>Professional Cinema Equipment</p>
       <div class="camera-tabs">
-        <span>SET</span>
-        <span class="active">CAMERA</span>
-        <span>LENS</span>
-        <span>GRIP</span>
-        <span>MONITOR</span>
+        <RouterLink
+          v-for="tab in categoryTabs"
+          :key="tab.label"
+          :to="tab.to"
+          class="camera-tab-link"
+          :class="{ active: tab.label === 'CAMERA' }"
+        >
+          {{ tab.label }}
+        </RouterLink>
+      </div>
+      <div class="camera-brand-tabs">
+        <button
+          v-for="brand in brandTabs"
+          :key="brand"
+          type="button"
+          class="camera-brand-button"
+          :class="{ active: activeBrand === brand }"
+          @click="activeBrand = brand"
+        >
+          {{ brand }}
+        </button>
       </div>
     </section>
 
     <section class="camera-grid-wrap">
       <div class="camera-grid">
-        <RouterLink v-for="item in cameraItems" :key="item.id" :to="`/camera/${item.id}`" class="camera-card">
+        <RouterLink v-for="item in filteredCameraItems" :key="item.id" :to="`/camera/${item.id}`" class="camera-card">
           <div class="camera-thumb-wrap">
             <img :src="item.image" :alt="item.name" class="camera-thumb" />
           </div>

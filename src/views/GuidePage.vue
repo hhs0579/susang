@@ -2,7 +2,7 @@
 import { RouterLink } from "vue-router";
 
 const menuItems = [
-  { label: "SET", to: "/category/set" },
+  { label: "SET", to: "/set" },
   { label: "CAMERA", to: "/camera" },
   { label: "LENS", to: "/lens" },
   { label: "GRIP", to: "/grip" },

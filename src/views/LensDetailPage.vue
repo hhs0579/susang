@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { lensProducts } from '../data/lensData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
@@ -9,6 +9,7 @@ const { getProductById } = useCategoryProducts('lens', lensProducts)
 const product = computed(() => getProductById(route.params.id))
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
+const selectedOptions = reactive({})
 
 const galleryImages = computed(() => {
   if (!product.value) return []
@@ -16,9 +17,17 @@ const galleryImages = computed(() => {
 })
 
 const selectedImage = computed(() => galleryImages.value[selectedImageIndex.value] || '')
+const hasDiscountPrice = computed(
+  () => Number(product.value?.originalPrice || 0) > Number(product.value?.discountPrice || 0),
+)
+const displayPrice = computed(() =>
+  hasDiscountPrice.value
+    ? Number(product.value?.discountPrice || 0)
+    : Number(product.value?.originalPrice || product.value?.discountPrice || 0),
+)
 
 const menuItems = [
-  { label: 'SET', to: '/category/set' },
+  { label: 'SET', to: '/set' },
   { label: 'CAMERA', to: '/camera' },
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
@@ -46,10 +55,75 @@ function showNextImage() {
   selectedImageIndex.value = (selectedImageIndex.value + 1) % galleryImages.value.length
 }
 
+function parseOptionEntry(entry) {
+  const match = entry.match(/\+([\d,]+)\s*$/)
+  const extraPrice = match ? Number(match[1].replaceAll(',', '')) : 0
+  const label = entry.replace(/\s*\+[\d,]+\s*$/, '').trim()
+  return { label, extraPrice }
+}
+
+const parsedOptionGroups = computed(() =>
+  optionGroups.value.map((group, groupIndex) => ({
+    groupIndex,
+    title: group.group,
+    isSingle: group.group.includes('Single'),
+    items: (group.items || []).map((entry, itemIndex) => {
+      const parsed = parseOptionEntry(entry)
+      return {
+        ...parsed,
+        id: `${groupIndex}-${itemIndex}`,
+      }
+    }),
+  })),
+)
+
+const selectedExtraPrice = computed(() => {
+  let total = 0
+  parsedOptionGroups.value.forEach((group) => {
+    const selected = selectedOptions[group.groupIndex]
+    if (!selected) return
+    if (group.isSingle) {
+      total += selected.extraPrice || 0
+      return
+    }
+    selected.forEach((item) => {
+      total += item.extraPrice || 0
+    })
+  })
+  return total
+})
+
+const totalPrice = computed(() => Number(displayPrice.value || 0) + selectedExtraPrice.value)
+
+function isSelected(group, item) {
+  const selected = selectedOptions[group.groupIndex]
+  if (!selected) return false
+  if (group.isSingle) return selected.id === item.id
+  return selected.some((entry) => entry.id === item.id)
+}
+
+function toggleOption(group, item) {
+  if (group.isSingle) {
+    selectedOptions[group.groupIndex] = item
+    return
+  }
+
+  const selected = selectedOptions[group.groupIndex] || []
+  const exists = selected.some((entry) => entry.id === item.id)
+  selectedOptions[group.groupIndex] = exists
+    ? selected.filter((entry) => entry.id !== item.id)
+    : [...selected, item]
+}
+
+function formatWon(value) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
+
 watch(
   () => route.params.id,
   () => {
     selectedImageIndex.value = 0
+    Object.keys(selectedOptions).forEach((key) => delete selectedOptions[key])
   },
 )
 </script>
@@ -103,8 +177,11 @@ watch(
       <div class="detail-right">
         <p class="detail-brand">{{ product.section }}</p>
         <h1>{{ product.name }}</h1>
-        <p class="detail-price">{{ formatCurrency(product.discountPrice) }} / 24H</p>
-        <p class="detail-original">원가 {{ formatCurrency(product.originalPrice) }}</p>
+        <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
+        <p class="detail-price">
+          {{ formatWon(displayPrice) }}
+          <span v-if="hasDiscountPrice" class="detail-price-note">카메라 대여시 할인가</span>
+        </p>
 
         <h2>COMPONENT LIST</h2>
         <ul class="component-box">
@@ -114,12 +191,27 @@ watch(
 
         <h2>DETAIL SELECT</h2>
         <div class="option-panels">
-          <details v-for="group in optionGroups" :key="group.group" class="option-panel" open>
-            <summary>{{ group.group }}</summary>
-            <ul>
-              <li v-for="entry in group.items" :key="entry">{{ entry }}</li>
+          <details v-for="group in parsedOptionGroups" :key="group.title" class="option-panel" open>
+            <summary>{{ group.title }}</summary>
+            <ul class="option-list">
+              <li v-for="item in group.items" :key="item.id">
+                <button
+                  type="button"
+                  class="option-choice"
+                  :class="{ active: isSelected(group, item) }"
+                  @click="toggleOption(group, item)"
+                >
+                  <span>{{ item.label }}</span>
+                  <b>{{ item.extraPrice ? `+${formatCurrency(item.extraPrice)}` : '+₩0' }}</b>
+                </button>
+              </li>
             </ul>
           </details>
+        </div>
+
+        <div class="detail-checkout">
+          <strong>{{ formatWon(totalPrice) }}</strong>
+          <button type="button">선택 견적서 보내기</button>
         </div>
       </div>
     </section>

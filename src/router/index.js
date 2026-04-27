@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '../views/HomePage.vue'
 import AdminLoginPage from '../views/AdminLoginPage.vue'
 import AdminDashboardPage from '../views/AdminDashboardPage.vue'
+import AdminProductCreatePage from '../views/AdminProductCreatePage.vue'
 import CameraListPage from '../views/CameraListPage.vue'
 import CameraDetailPage from '../views/CameraDetailPage.vue'
 import LensListPage from '../views/LensListPage.vue'
@@ -14,6 +15,8 @@ import IntercomListPage from '../views/IntercomListPage.vue'
 import IntercomDetailPage from '../views/IntercomDetailPage.vue'
 import GuidePage from '../views/GuidePage.vue'
 import CategoryPage from '../views/CategoryPage.vue'
+import SetListPage from '../views/SetListPage.vue'
+import SetDetailPage from '../views/SetDetailPage.vue'
 import { auth } from '../firebase'
 
 const ADMIN_SESSION_KEY = 'susang_admin_logged_in'
@@ -23,6 +26,8 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomePage },
     { path: '/category/:slug', name: 'category-page', component: CategoryPage },
+    { path: '/set', name: 'set-list', component: SetListPage },
+    { path: '/set/:id', name: 'set-detail', component: SetDetailPage },
     { path: '/camera', name: 'camera-list', component: CameraListPage },
     { path: '/camera/:id', name: 'camera-detail', component: CameraDetailPage },
     { path: '/lens', name: 'lens-list', component: LensListPage },
@@ -39,6 +44,12 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: AdminDashboardPage,
+      meta: { requiresAdmin: true },
+    },
+    {
+      path: '/admin/products/new',
+      name: 'admin-product-create',
+      component: AdminProductCreatePage,
       meta: { requiresAdmin: true },
     },
   ],

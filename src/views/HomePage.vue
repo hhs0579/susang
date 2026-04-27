@@ -22,6 +22,7 @@ const guideItems = [
 const { state } = useContentStore();
 const remoteProducts = ref([]);
 const arrivalLinkMap = {
+  set: (id) => `/set/${id}`,
   camera: (id) => `/camera/${id}`,
   lens: (id) => `/lens/${id}`,
   grip: (id) => `/grip/${id}`,
@@ -71,7 +72,7 @@ const arrivalItems = computed(() => {
 });
 
 const menuItems = [
-  { label: "SET", to: "/category/set" },
+  { label: "SET", to: "/set" },
   { label: "CAMERA", to: "/camera" },
   { label: "LENS", to: "/lens" },
   { label: "GRIP", to: "/grip" },
@@ -81,7 +82,7 @@ const menuItems = [
 ];
 
 const categoryLinkMap = {
-  SET: "/category/set",
+  SET: "/set",
   CAMERA: "/camera",
   LENS: "/lens",
   GRIP: "/grip",
@@ -121,19 +122,19 @@ function getCategoryLink(name) {
 
     <section class="hero">
       <div class="hero-overlay">
-        <h1>감독이 운영하는, 감독을 위한 렌탈</h1>
+        <h1>감독이 운영하는 감독을 위한 렌탈</h1>
         <p>
-          수상한렌탈은 수상한움직임 프로덕션에 속해있는 렌탈샵입니다.<br />
-          촬영감독이 운영하고 있으며 감독님들에게 저렴하고<br />
-          실속있는 장비셋팅으로 찾아 뵙도록 노력하고 있습니다.
+          <span class="hero-desc-line">수상한렌탈은 수상한움직임 프로덕션 소속 렌탈샵입니다.</span>
+          <span class="hero-desc-line">촬영감독이 운영하며 감독님들께 저렴하고</span>
+          <span class="hero-desc-line">실속 있는 장비 세팅으로 찾아뵙겠습니다.</span>
         </p>
         <a href="#" class="hero-link">장비 바로가기 &gt;</a>
       </div>
     </section>
 
     <section class="section category">
-      <p class="section-sub">Professional Cinema Equipment Rental</p>
       <h2>SUSANG RENTAL</h2>
+      <p class="section-sub">Professional Cinema Equipment Rental</p>
       <div class="grid category-grid">
         <RouterLink
           v-for="item in state.categoryItems"

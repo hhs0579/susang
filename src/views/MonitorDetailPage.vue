@@ -12,7 +12,7 @@ const selectedImageIndex = ref(0)
 const selectedOptions = reactive({})
 
 const menuItems = [
-  { label: 'SET', to: '/category/set' },
+  { label: 'SET', to: '/set' },
   { label: 'CAMERA', to: '/camera' },
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
@@ -29,9 +29,9 @@ const galleryImages = computed(() => {
 const selectedImage = computed(() => galleryImages.value[selectedImageIndex.value] || '')
 
 function parseOptionEntry(entry) {
-  const match = entry.match(/\+([\d,]+)/)
+  const match = entry.match(/\+([\d,]+)\s*$/)
   const extraPrice = match ? Number(match[1].replaceAll(',', '')) : 0
-  const label = entry.replace(/\s*\+[\d,]+/, '').trim()
+  const label = entry.replace(/\s*\+[\d,]+\s*$/, '').trim()
   return { label, extraPrice }
 }
 
@@ -67,6 +67,18 @@ const selectedExtraPrice = computed(() => {
 })
 
 const totalPrice = computed(() => (product.value?.discountPrice || 0) + selectedExtraPrice.value)
+const hasDiscountPrice = computed(
+  () => Number(product.value?.originalPrice || 0) > Number(product.value?.discountPrice || 0),
+)
+const displayPrice = computed(() =>
+  hasDiscountPrice.value
+    ? Number(product.value?.discountPrice || 0)
+    : Number(product.value?.originalPrice || product.value?.discountPrice || 0),
+)
+
+function formatWon(value) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
 
 function isActiveMenu(label) {
   return label === 'MONITOR'
@@ -162,8 +174,11 @@ watch(
       <div class="detail-right">
         <p class="detail-brand">{{ product.section }}</p>
         <h1>{{ product.name }}</h1>
-        <p class="detail-price">{{ formatCurrency(product.discountPrice) }} / 24H</p>
-        <p class="detail-original">원가 {{ formatCurrency(product.originalPrice) }}</p>
+        <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
+        <p class="detail-price">
+          {{ formatWon(displayPrice) }}
+          <span v-if="hasDiscountPrice" class="detail-price-note">카메라 대여시 할인가</span>
+        </p>
 
         <h2>COMPONENT LIST</h2>
         <ul class="component-box">
@@ -191,7 +206,7 @@ watch(
         </div>
 
         <div class="detail-checkout">
-          <strong>{{ formatCurrency(totalPrice) }} / 24H</strong>
+          <strong>{{ formatWon(totalPrice) }}</strong>
           <button type="button">선택 견적서 보내기</button>
         </div>
       </div>

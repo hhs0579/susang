@@ -1,6 +1,30 @@
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/font/Pretendard-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/font/Pretendard-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('/font/Pretendard-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   font-family:
-    "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   color: #222;
   background: #f3f3f3;
   line-height: 1.5;
@@ -128,42 +152,14 @@ a {
 .hero {
   min-height: 420px;
   background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.2)),
-    radial-gradient(
-      circle at 20% 45%,
-      rgba(120, 130, 145, 0.25) 0,
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 68% 50%,
-      rgba(120, 130, 145, 0.22) 0,
-      transparent 32%
-    ),
-    #0a1119;
+    linear-gradient(90deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.28)),
+    url('/assets/images/main1.png');
+  background-size: cover;
+
+  background-position: center;
+  background-repeat: no-repeat;
   position: relative;
   overflow: hidden;
-}
-
-.hero::before,
-.hero::after {
-  content: "";
-  position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 999px;
-}
-
-.hero::before {
-  width: 470px;
-  height: 470px;
-  top: -95px;
-  left: 48%;
-}
-
-.hero::after {
-  width: 330px;
-  height: 330px;
-  top: 30px;
-  left: 63%;
 }
 
 .hero-overlay {
@@ -180,6 +176,7 @@ a {
   line-height: 1.2;
   letter-spacing: -0.4px;
   word-break: keep-all;
+  white-space: nowrap;
 }
 
 .hero-overlay p {
@@ -187,6 +184,11 @@ a {
   font-size: 14px;
   color: #d8dee8;
   word-break: keep-all;
+}
+
+.hero-desc-line {
+  display: block;
+  white-space: nowrap;
 }
 
 .hero-link {
@@ -227,6 +229,7 @@ a {
 .card {
   background: #fff;
   border: 1px solid #ededed;
+  border-radius: 6px;
 }
 
 .category-grid {
@@ -236,6 +239,22 @@ a {
   overflow-y: hidden;
   padding-bottom: 8px;
   scroll-snap-type: x proximity;
+}
+
+.category h2 {
+  margin-bottom: 26px;
+}
+
+.category .section-sub {
+  margin: 0 0 50px;
+}
+
+.guide h3 {
+  margin-bottom: 26px;
+}
+
+.guide .section-sub {
+  margin: 0 0 50px;
 }
 
 .category-grid::-webkit-scrollbar {
@@ -248,21 +267,22 @@ a {
 }
 
 .category-card {
-  flex: 0 0 200px;
-  padding: 14px;
+  flex: 0 0 385px;
+  width: 385px;
+  height: 385px;
+  padding: 10px;
   scroll-snap-align: start;
 }
 
 .category-card strong {
   display: block;
-  margin-top: 10px;
-  font-size: 16px;
+  margin-top: 12px;
+  font-size: 18px;
   letter-spacing: 0.3px;
 }
 
 .category-card span {
-  font-size: 11px;
-  color: #8a8a8a;
+  display: none;
 }
 
 .thumb {
@@ -272,7 +292,8 @@ a {
 }
 
 .thumb-img {
-  object-fit: cover;
+  object-fit: contain;
+  padding: 14px;
 }
 
 .thumb-category {
@@ -286,7 +307,8 @@ a {
 }
 
 .category-card .thumb {
-  height: 150px;
+  height: 305px;
+  background: #F2F2F2;
 }
 
 .section-link {
@@ -352,6 +374,12 @@ a {
 .guide-card {
   padding: 28px 16px;
   background: #fafafa;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .step {
@@ -513,6 +541,12 @@ a {
   cursor: pointer;
 }
 
+.admin-header-actions .admin-add-button {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
 .admin-section {
   margin-top: 24px;
   border: 1px solid #e6e6e6;
@@ -656,10 +690,39 @@ a {
   font-weight: 700;
 }
 
+.admin-tabs {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-tab-button {
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  border-radius: 999px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-tab-button.active {
+  border-color: #111;
+  background: #111;
+  color: #fff;
+}
+
 .admin-item-actions .danger {
   border: none;
   background: #dc3f3f;
   color: #fff;
+}
+
+.admin-success {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #1f8f49;
 }
 
 .danger {
@@ -702,9 +765,35 @@ a {
   color: #888;
 }
 
+.camera-tab-link {
+  color: inherit;
+}
+
 .camera-tabs .active {
   color: #111;
   border-bottom: 1px solid #111;
+}
+
+.camera-brand-tabs {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.camera-brand-button {
+  border: 1px solid #d6d6d6;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.camera-brand-button.active {
+  border-color: #111;
+  background: #111;
+  color: #fff;
 }
 
 .camera-grid-wrap {
@@ -720,6 +809,8 @@ a {
 .camera-card {
   border: 1px solid #e9e9e9;
   background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .camera-thumb-wrap {
@@ -786,8 +877,23 @@ a {
 
 .detail-right {
   max-height: calc(100vh - 120px);
-  overflow-y: auto;
+  overflow-y: scroll;
   padding-right: 8px;
+  padding-bottom: 90px;
+  scrollbar-gutter: stable;
+}
+
+.detail-right::-webkit-scrollbar {
+  width: 8px;
+}
+
+.detail-right::-webkit-scrollbar-track {
+  background: #efefef;
+}
+
+.detail-right::-webkit-scrollbar-thumb {
+  background: #bcbcbc;
+  border-radius: 999px;
 }
 
 .detail-main-image {
@@ -876,25 +982,43 @@ a {
   word-break: keep-all;
 }
 
-.detail-right h1 small {
-  font-size: 22px;
-}
-
 .detail-price {
-  margin-top: 8px;
-  font-size: 42px;
+  margin-top: 3px;
+  margin-bottom: 0;
+  font-size: 28px;
   font-weight: 700;
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
 }
 
 .detail-original {
-  margin-top: 6px;
-  font-size: 14px;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 24px;
+  color: #8b8b8b;
+  text-decoration: line-through;
+}
+
+.detail-right h1 + .detail-original,
+.detail-right h1 + .detail-price {
+  margin-top: 20px;
+}
+
+.detail-price-note {
+  margin-left: 12px;
+  font-size: 12px;
+  font-weight: 400;
   color: #8b8b8b;
 }
 
 .detail-right h2 {
   margin: 24px 0 10px;
   font-size: 29px;
+}
+
+.detail-right h2:first-of-type {
+  margin-top: 72px;
 }
 
 .component-box {
@@ -1017,6 +1141,11 @@ a {
   background: #efefef;
   border: 1px solid #e4e4e4;
   padding: 18px;
+}
+
+.category-set-link {
+  display: inline-block;
+  margin-top: 22px;
 }
 
 .guide-page {
@@ -1156,6 +1285,7 @@ a {
 
   .hero-overlay h1 {
     font-size: 28px;
+    white-space: normal;
   }
 
   .section {
@@ -1208,9 +1338,9 @@ a {
   }
 
   .detail-right {
-    max-height: none;
-    overflow-y: visible;
-    padding-right: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: scroll;
+    padding-right: 8px;
   }
 
   .detail-right h1,

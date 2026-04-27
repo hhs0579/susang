@@ -1,10 +1,11 @@
 <script setup>
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { intercomProducts } from '../data/intercomData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
 
 const menuItems = [
-  { label: 'SET', to: '/category/set' },
+  { label: 'SET', to: '/set' },
   { label: 'CAMERA', to: '/camera' },
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
@@ -18,6 +19,27 @@ function isActiveMenu(label) {
 }
 
 const { products: intercomItems } = useCategoryProducts('intercom', intercomProducts)
+const activeBrand = ref('ALL')
+
+const categoryTabs = [
+  { label: 'SET', to: '/set' },
+  { label: 'CAMERA', to: '/camera' },
+  { label: 'LENS', to: '/lens' },
+  { label: 'GRIP', to: '/grip' },
+  { label: 'MONITOR', to: '/monitor' },
+  { label: 'LIGHT', to: '/category/light' },
+  { label: 'INTERCOM', to: '/intercom' },
+]
+
+const brandTabs = computed(() => {
+  const brands = [...new Set(intercomItems.value.map((item) => item.brand).filter(Boolean))]
+  return ['ALL', ...brands]
+})
+
+const filteredIntercomItems = computed(() => {
+  if (activeBrand.value === 'ALL') return intercomItems.value
+  return intercomItems.value.filter((item) => item.brand === activeBrand.value)
+})
 </script>
 
 <template>
@@ -44,12 +66,35 @@ const { products: intercomItems } = useCategoryProducts('intercom', intercomProd
     <section class="camera-header">
       <h1>INTERCOM</h1>
       <p>Professional Communication Gear</p>
+      <div class="camera-tabs">
+        <RouterLink
+          v-for="tab in categoryTabs"
+          :key="tab.label"
+          :to="tab.to"
+          class="camera-tab-link"
+          :class="{ active: tab.label === 'INTERCOM' }"
+        >
+          {{ tab.label }}
+        </RouterLink>
+      </div>
+      <div class="camera-brand-tabs">
+        <button
+          v-for="brand in brandTabs"
+          :key="brand"
+          type="button"
+          class="camera-brand-button"
+          :class="{ active: activeBrand === brand }"
+          @click="activeBrand = brand"
+        >
+          {{ brand }}
+        </button>
+      </div>
     </section>
 
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
         <RouterLink
-          v-for="item in intercomItems"
+          v-for="item in filteredIntercomItems"
           :key="item.id"
           :to="`/intercom/${item.id}`"
           class="camera-card"

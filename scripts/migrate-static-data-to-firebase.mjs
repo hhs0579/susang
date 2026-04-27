@@ -6,6 +6,7 @@ import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 import { collection, doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore'
 import { getDownloadURL, getStorage, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { cameraProducts } from '../src/data/cameraData.js'
+import { setProducts } from '../src/data/setData.js'
 import { lensProducts } from '../src/data/lensData.js'
 import { gripProducts } from '../src/data/gripData.js'
 import { monitorProducts } from '../src/data/monitorData.js'
@@ -36,6 +37,7 @@ const auth = getAuth(app)
 
 function getCategoryProducts() {
   return [
+    ['set', setProducts],
     ['camera', cameraProducts],
     ['lens', lensProducts],
     ['grip', gripProducts],

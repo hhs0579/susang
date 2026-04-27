@@ -11,7 +11,6 @@ const product = computed(() => getProductById(route.params.id))
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
 const selectedOptions = reactive({})
-const BASE_FEE = 5000
 
 const galleryImages = computed(() => {
   if (!product.value) return []
@@ -21,9 +20,9 @@ const galleryImages = computed(() => {
 const selectedImage = computed(() => galleryImages.value[selectedImageIndex.value] || '')
 
 function parseOptionEntry(entry) {
-  const match = entry.match(/\+([\d,]+)/)
+  const match = entry.match(/\+([\d,]+)\s*$/)
   const extraPrice = match ? Number(match[1].replaceAll(',', '')) : 0
-  const label = entry.replace(/\s*\+[\d,]+/, '').trim()
+  const label = entry.replace(/\s*\+[\d,]+\s*$/, '').trim()
   return { label, extraPrice }
 }
 
@@ -58,7 +57,19 @@ const selectedExtraPrice = computed(() => {
   return total
 })
 
-const totalPrice = computed(() => (product.value?.discountPrice || 0) + BASE_FEE + selectedExtraPrice.value)
+const totalPrice = computed(() => (product.value?.discountPrice || 0) + selectedExtraPrice.value)
+const hasDiscountPrice = computed(
+  () => Number(product.value?.originalPrice || 0) > Number(product.value?.discountPrice || 0),
+)
+const displayPrice = computed(() =>
+  hasDiscountPrice.value
+    ? Number(product.value?.discountPrice || 0)
+    : Number(product.value?.originalPrice || product.value?.discountPrice || 0),
+)
+
+function formatWon(value) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
 
 function selectImage(index) {
   selectedImageIndex.value = index
@@ -95,6 +106,20 @@ function toggleOption(group, item) {
     : [...selected, item]
 }
 
+const menuItems = [
+  { label: 'SET', to: '/set' },
+  { label: 'CAMERA', to: '/camera' },
+  { label: 'LENS', to: '/lens' },
+  { label: 'GRIP', to: '/grip' },
+  { label: 'MONITOR', to: '/monitor' },
+  { label: 'LIGHT', to: '/category/light' },
+  { label: 'INTERCOM', to: '/intercom' },
+]
+
+function isActiveMenu(label) {
+  return label === 'CAMERA'
+}
+
 watch(
   () => route.params.id,
   () => {
@@ -106,6 +131,25 @@ watch(
 
 <template>
   <main v-if="product" class="camera-detail-page">
+    <header class="topbar">
+      <RouterLink to="/" class="logo">
+        <img src="/assets/images/logo1.png" alt="SUSANG RENTAL HOUSE" class="logo-image" />
+      </RouterLink>
+      <nav class="menu">
+        <RouterLink
+          v-for="item in menuItems"
+          :key="item.label"
+          :to="item.to"
+          class="menu-item"
+          :class="{ active: isActiveMenu(item.label) }"
+        >
+          {{ item.label }}
+        </RouterLink>
+        <RouterLink to="/guide" class="menu-item">이용안내</RouterLink>
+        <a href="#" class="menu-item">할인정보</a>
+      </nav>
+    </header>
+
     <section class="detail-wrap">
       <div class="detail-left">
         <RouterLink to="/camera" class="back-link">&lt; Back to Category</RouterLink>
@@ -133,8 +177,12 @@ watch(
 
       <div class="detail-right">
         <p class="detail-brand">{{ product.brand }}</p>
-        <h1>{{ product.name }} <small>/ PL</small></h1>
-        <p class="detail-price">{{ formatCurrency(product.discountPrice) }} / 24H</p>
+        <h1>{{ product.name }}</h1>
+        <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
+        <p class="detail-price">
+          {{ formatWon(displayPrice) }}
+          <span v-if="hasDiscountPrice" class="detail-price-note">카메라 대여시 할인가</span>
+        </p>
 
         <h2>COMPONENT LIST</h2>
         <ul class="component-box">
@@ -162,7 +210,7 @@ watch(
         </div>
 
         <div class="detail-checkout">
-          <strong>{{ formatCurrency(totalPrice) }} / 24H</strong>
+          <strong>{{ formatWon(totalPrice) }}</strong>
           <button type="button">선택 견적서 보내기</button>
         </div>
       </div>
