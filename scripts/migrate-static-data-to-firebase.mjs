@@ -11,6 +11,7 @@ import { lensProducts } from '../src/data/lensData.js'
 import { gripProducts } from '../src/data/gripData.js'
 import { monitorProducts } from '../src/data/monitorData.js'
 import { intercomProducts } from '../src/data/intercomData.js'
+import { lightProducts } from '../src/data/lightData.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -42,6 +43,7 @@ function getCategoryProducts() {
     ['lens', lensProducts],
     ['grip', gripProducts],
     ['monitor', monitorProducts],
+    ['light', lightProducts],
     ['intercom', intercomProducts],
   ]
 }

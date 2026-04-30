@@ -1,13 +1,16 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { setProducts } from '../data/setData'
+import { lensProducts } from '../data/lensData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
 import SiteHeader from '../components/SiteHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
+
+const SUPPORT_SECTIONS = new Set(['WIRELESS FOCUS', 'MATTEBOX', 'FILTER'])
+const fallbackSupportProducts = lensProducts.filter((item) => SUPPORT_SECTIONS.has(item.section))
 
 const route = useRoute()
-const { getProductById } = useCategoryProducts('set', setProducts)
-
+const { getProductById } = useCategoryProducts('support', fallbackSupportProducts)
 const product = computed(() => getProductById(route.params.id))
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
@@ -60,7 +63,7 @@ const selectedExtraPrice = computed(() => {
   return total
 })
 
-const totalPrice = computed(() => (product.value?.discountPrice || 0) + selectedExtraPrice.value)
+const totalPrice = computed(() => Number(product.value?.originalPrice || 0) + selectedExtraPrice.value)
 const hasDiscountPrice = computed(
   () => Number(product.value?.originalPrice || 0) > Number(product.value?.discountPrice || 0),
 )
@@ -157,20 +160,6 @@ function showToast(message) {
   }, 1800)
 }
 
-const menuItems = [
-  { label: 'SET', to: '/set' },
-  { label: 'CAMERA', to: '/camera' },
-  { label: 'LENS', to: '/lens' },
-  { label: 'GRIP', to: '/grip' },
-  { label: 'MONITOR', to: '/monitor' },
-  { label: 'LIGHT', to: '/light' },
-  { label: 'INTERCOM', to: '/intercom' },
-]
-
-function isActiveMenu(label) {
-  return label === 'SET'
-}
-
 watch(
   () => route.params.id,
   () => {
@@ -186,7 +175,7 @@ watch(
 
     <section class="detail-wrap">
       <div class="detail-left">
-        <RouterLink to="/set" class="back-link">&lt; Back to Category</RouterLink>
+        <RouterLink to="/support" class="back-link">&lt; Back to Category</RouterLink>
         <div class="detail-main-image">
           <button type="button" class="image-nav image-nav-left" @click="showPrevImage">&lt;</button>
           <img :src="selectedImage" :alt="product.name" />
@@ -210,16 +199,17 @@ watch(
       </div>
 
       <div class="detail-right">
-        <p class="detail-brand">{{ product.brand }}</p>
+        <p class="detail-brand">{{ product.section }}</p>
         <h1>{{ product.name }}</h1>
         <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
         <p class="detail-price">
           {{ formatWon(displayPrice) }}
-          <span v-if="hasDiscountPrice" class="detail-price-note">SET 구성할인</span>
+          <span v-if="hasDiscountPrice" class="detail-price-note">카메라 대여시 할인가</span>
         </p>
 
         <h2>COMPONENT LIST</h2>
         <ul class="component-box">
+          <li v-if="!product.baseComponents.length">기본 구성품 없음</li>
           <li v-for="component in product.baseComponents" :key="component">{{ component }}</li>
         </ul>
 
@@ -249,11 +239,13 @@ watch(
         </div>
       </div>
     </section>
+
+    <SiteFooter />
   </main>
 
   <main v-else class="camera-not-found">
     <h1>상품을 찾을 수 없습니다.</h1>
-    <RouterLink to="/set">세트 목록으로 돌아가기</RouterLink>
+    <RouterLink to="/support">SUPPORT 목록으로 돌아가기</RouterLink>
   </main>
 
   <div

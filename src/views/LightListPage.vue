@@ -1,68 +1,45 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { gripProducts } from '../data/gripData'
+import { lightProducts } from '../data/lightData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 
-const menuItems = [
-  { label: 'SET', to: '/set' },
-  { label: 'CAMERA', to: '/camera' },
-  { label: 'LENS', to: '/lens' },
-  { label: 'GRIP', to: '/grip' },
-  { label: 'MONITOR', to: '/monitor' },
-  { label: 'LIGHT', to: '/light' },
-  { label: 'INTERCOM', to: '/intercom' },
-]
-
-function isActiveMenu(label) {
-  return label === 'GRIP'
-}
-
-const { products: gripItems } = useCategoryProducts('grip', gripProducts)
+const { products: lightItems } = useCategoryProducts('light', lightProducts)
 const activeSubCategory = ref('ALL')
 
 const { categoryTabs } = useCategoryNavigation()
 
-const gripSubCategoryTabs = ['ALL', 'Gimbal', 'Grip', 'Tripod', 'Cart']
+const lightSubCategoryTabs = [
+  'ALL',
+  'LED Panel',
+  'LED Spot-Source',
+  'LED Modifiers',
+  'LED Like Practical',
+  'Light Arm Set',
+  'Light Grip',
+  'Battery System',
+  'Light Scrim',
+]
 
-const filteredGripItems = computed(() => {
-  if (activeSubCategory.value === 'ALL') return gripItems.value
-  return gripItems.value.filter((item) => getGripSubCategory(item) === activeSubCategory.value)
+const filteredLightItems = computed(() => {
+  if (activeSubCategory.value === 'ALL') return lightItems.value
+  return lightItems.value.filter((item) => getLightSubCategory(item) === activeSubCategory.value)
 })
 
-function getGripSubCategory(item) {
+function getLightSubCategory(item) {
   const section = String(item?.section || '').toUpperCase()
-  const name = String(item?.name || '').toUpperCase()
-
-  if (section.includes('TRIPOD')) return 'Tripod'
-  if (section.includes('CART')) return 'Cart'
-  if (section === 'GIMBAL') return 'Gimbal'
-  if (section === 'GRIP') return 'Grip'
-  if (section === 'GRIP / GIMBAL') {
-    if (
-      name.includes('RONIN') ||
-      name.includes('MOVI') ||
-      name.includes('GIMBAL') ||
-      name.includes('EASYRIG') ||
-      name.includes('SEGWAY')
-    ) {
-      return 'Gimbal'
-    }
-    return 'Grip'
-  }
-  if (
-    name.includes('RONIN') ||
-    name.includes('MOVI') ||
-    name.includes('GIMBAL') ||
-    name.includes('EASYRIG') ||
-    name.includes('SEGWAY')
-  ) {
-    return 'Gimbal'
-  }
-  return 'Grip'
+  if (section.includes('LED PANEL')) return 'LED Panel'
+  if (section.includes('LED SPOT-SOURCE')) return 'LED Spot-Source'
+  if (section.includes('LED MODIFIERS')) return 'LED Modifiers'
+  if (section.includes('LED LIKE PRACTICAL')) return 'LED Like Practical'
+  if (section.includes('LIGHT ARM SET')) return 'Light Arm Set'
+  if (section.includes('LIGHT GRIP')) return 'Light Grip'
+  if (section.includes('BATTERY SYSTEM')) return 'Battery System'
+  if (section.includes('LIGHT SCRIM')) return 'Light Scrim'
+  return 'LED Panel'
 }
 </script>
 
@@ -71,21 +48,21 @@ function getGripSubCategory(item) {
     <SiteHeader />
 
     <section class="camera-header">
-      <h1>GRIP / GIMBAL</h1>
+      <h1>LIGHT</h1>
       <div class="camera-tabs">
         <RouterLink
           v-for="tab in categoryTabs"
           :key="tab.label"
           :to="tab.to"
           class="camera-tab-link"
-          :class="{ active: tab.label === 'GRIP' }"
+          :class="{ active: tab.label === 'LIGHT' }"
         >
           {{ tab.label }}
         </RouterLink>
       </div>
       <div class="camera-brand-tabs">
         <button
-          v-for="subCategory in gripSubCategoryTabs"
+          v-for="subCategory in lightSubCategoryTabs"
           :key="subCategory"
           type="button"
           class="camera-brand-button"
@@ -99,7 +76,7 @@ function getGripSubCategory(item) {
 
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
-        <RouterLink v-for="item in filteredGripItems" :key="item.id" :to="`/grip/${item.id}`" class="camera-card">
+        <RouterLink v-for="item in filteredLightItems" :key="item.id" :to="`/light/${item.id}`" class="camera-card">
           <div class="camera-thumb-wrap">
             <img :src="item.image" :alt="item.name" class="camera-thumb" />
           </div>

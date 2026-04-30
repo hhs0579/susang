@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { cameraProducts } from '../data/cameraData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import SiteHeader from '../components/SiteHeader.vue'
 
 const route = useRoute()
 const { getProductById } = useCategoryProducts('camera', cameraProducts)
@@ -11,6 +12,8 @@ const product = computed(() => getProductById(route.params.id))
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
 const selectedOptions = reactive({})
+const toastMessage = ref('')
+let toastTimerId
 
 const galleryImages = computed(() => {
   if (!product.value) return []
@@ -106,13 +109,61 @@ function toggleOption(group, item) {
     : [...selected, item]
 }
 
+function getSelectedItems(group) {
+  const selected = selectedOptions[group.groupIndex]
+  if (!selected) return []
+  return group.isSingle ? [selected] : selected
+}
+
+function buildOptionShareText() {
+  const lines = [`[${product.value?.name || ''}] 선택 구성`]
+
+  const selectedGroups = parsedOptionGroups.value
+    .map((group) => ({ group, items: getSelectedItems(group) }))
+    .filter(({ items }) => items.length > 0)
+
+  if (!selectedGroups.length) {
+    lines.push('추가 옵션: 없음')
+  } else {
+    lines.push('추가 옵션:')
+    selectedGroups.forEach(({ group, items }) => {
+      const itemText = items
+        .map((item) => `${item.label}${item.extraPrice ? ` (+${formatWon(item.extraPrice)})` : ''}`)
+        .join(', ')
+      lines.push(`- ${group.title}: ${itemText}`)
+    })
+  }
+
+  return lines.join('\n')
+}
+
+async function copyOptionSummary() {
+  if (!product.value) return
+
+  const text = buildOptionShareText()
+  try {
+    await navigator.clipboard.writeText(text)
+    showToast('복사되었습니다')
+  } catch (error) {
+    showToast('복사에 실패했습니다')
+  }
+}
+
+function showToast(message) {
+  toastMessage.value = message
+  clearTimeout(toastTimerId)
+  toastTimerId = setTimeout(() => {
+    toastMessage.value = ''
+  }, 1800)
+}
+
 const menuItems = [
   { label: 'SET', to: '/set' },
   { label: 'CAMERA', to: '/camera' },
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
   { label: 'MONITOR', to: '/monitor' },
-  { label: 'LIGHT', to: '/category/light' },
+  { label: 'LIGHT', to: '/light' },
   { label: 'INTERCOM', to: '/intercom' },
 ]
 
@@ -131,24 +182,7 @@ watch(
 
 <template>
   <main v-if="product" class="camera-detail-page">
-    <header class="topbar">
-      <RouterLink to="/" class="logo">
-        <img src="/assets/images/logo1.png" alt="SUSANG RENTAL HOUSE" class="logo-image" />
-      </RouterLink>
-      <nav class="menu">
-        <RouterLink
-          v-for="item in menuItems"
-          :key="item.label"
-          :to="item.to"
-          class="menu-item"
-          :class="{ active: isActiveMenu(item.label) }"
-        >
-          {{ item.label }}
-        </RouterLink>
-        <RouterLink to="/guide" class="menu-item">이용안내</RouterLink>
-        <a href="#" class="menu-item">할인정보</a>
-      </nav>
-    </header>
+    <SiteHeader />
 
     <section class="detail-wrap">
       <div class="detail-left">
@@ -211,7 +245,7 @@ watch(
 
         <div class="detail-checkout">
           <strong>{{ formatWon(totalPrice) }}</strong>
-          <button type="button">선택 견적서 보내기</button>
+          <button type="button" @click="copyOptionSummary">선택 구성 내보내기</button>
         </div>
       </div>
     </section>
@@ -221,4 +255,24 @@ watch(
     <h1>상품을 찾을 수 없습니다.</h1>
     <RouterLink to="/camera">카메라 목록으로 돌아가기</RouterLink>
   </main>
+
+  <div
+    v-if="toastMessage"
+    style="
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.82);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    "
+  >
+    {{ toastMessage }}
+  </div>
 </template>

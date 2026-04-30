@@ -1,6 +1,7 @@
 <template>
   <RouterView />
   <a
+    v-if="!isAdminRoute"
     href="http://pf.kakao.com/_xbxcxhhK"
     target="_blank"
     rel="noreferrer"
@@ -18,10 +19,12 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
-import { RouterView } from 'vue-router'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 
 const isSplashVisible = ref(true)
+const route = useRoute()
+const isAdminRoute = computed(() => String(route.path || '').startsWith('/admin'))
 
 const MIN_SPLASH_MS = 700
 

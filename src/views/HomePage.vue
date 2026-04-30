@@ -4,6 +4,9 @@ import { RouterLink } from "vue-router";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useContentStore } from "../stores/contentStore";
+import SiteHeader from "../components/SiteHeader.vue";
+import SiteFooter from "../components/SiteFooter.vue";
+import { categoryPathFor } from "../composables/useCategoryNavigation";
 
 const guideItems = [
   {
@@ -21,10 +24,14 @@ const guideItems = [
 
 const { state } = useContentStore();
 const remoteProducts = ref([]);
+const heroStyle = computed(() => ({
+  backgroundImage: `linear-gradient(90deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.28)), url('${state.heroBannerImageUrl}')`,
+}));
 const arrivalLinkMap = {
   set: (id) => `/set/${id}`,
   camera: (id) => `/camera/${id}`,
   lens: (id) => `/lens/${id}`,
+  support: (id) => `/support/${id}`,
   grip: (id) => `/grip/${id}`,
   monitor: (id) => `/monitor/${id}`,
   intercom: (id) => `/intercom/${id}`,
@@ -67,7 +74,7 @@ const arrivalItems = computed(() => {
       title: item.name || "상품명 없음",
       price: `₩${Number(item.discountPrice || 0).toLocaleString("ko-KR")}`,
       imageUrl: item.mainImage || (Array.isArray(item.images) ? item.images[0] : "") || "",
-      link: arrivalLinkMap[item.category]?.(item.id) || "/",
+      link: arrivalLinkMap[item.category]?.(item.id) || `${categoryPathFor(item.category)}/${item.id}`,
     }));
 });
 
@@ -77,7 +84,7 @@ const menuItems = [
   { label: "LENS", to: "/lens" },
   { label: "GRIP", to: "/grip" },
   { label: "MONITOR", to: "/monitor" },
-  { label: "LIGHT", to: "/category/light" },
+  { label: "LIGHT", to: "/light" },
   { label: "INTERCOM", to: "/intercom" },
 ];
 
@@ -85,9 +92,10 @@ const categoryLinkMap = {
   SET: "/set",
   CAMERA: "/camera",
   LENS: "/lens",
+  SUPPORT: "/support",
   GRIP: "/grip",
   MONITOR: "/monitor",
-  LIGHT: "/category/light",
+  LIGHT: "/light",
   INTERCOM: "/intercom",
 };
 
@@ -98,29 +106,9 @@ function getCategoryLink(name) {
 
 <template>
   <div class="page">
-    <header class="topbar">
-      <RouterLink to="/" class="logo">
-        <img
-          src="/assets/images/logo1.png"
-          alt="SUSANG RENTAL HOUSE"
-          class="logo-image"
-        />
-      </RouterLink>
-      <nav class="menu">
-        <RouterLink
-          v-for="item in menuItems"
-          :key="item.label"
-          :to="item.to"
-          class="menu-item"
-        >
-          {{ item.label }}
-        </RouterLink>
-        <RouterLink to="/guide" class="menu-item">이용안내</RouterLink>
-        <a href="#" class="menu-item">할인정보</a>
-      </nav>
-    </header>
+    <SiteHeader />
 
-    <section class="hero">
+    <section class="hero" :style="heroStyle">
       <div class="hero-overlay">
         <h1>감독이 운영하는 감독을 위한 렌탈</h1>
         <p>
@@ -198,23 +186,6 @@ function getCategoryLink(name) {
       <RouterLink to="/guide" class="section-link">자세한 이용안내 보기 &gt;</RouterLink>
     </section>
 
-    <footer class="footer">
-      <div class="footer-left">
-        <img src="/assets/images/logo2.png" alt="susang rental" class="footer-logo" />
-        <p>상호명 주식회사 수상한렌탈</p>
-        <p>대표 김민국</p>
-        <p>주소 서울시 마포구 잔다리로3길 7 1층</p>
-        <p>사업자등록증번호 326-88-03299</p>
-        <p>이메일 susanghanrental@gmail.com</p>
-        <p>대표 번호 010- 4139-9844</p>
-        <p>카카오톡 채널 http://pf.kakao.com/_xbxcxhhK</p>
-      </div>
-      <div class="footer-right">
-        <p class="footer-account">830501-04-254913</p>
-        <p>국민은행 / 예금주 : 주식회사 수상한렌탈</p>
-        <p class="footer-social">Instagram YouTube</p>
-        <p class="footer-copy">Copyright © susanghanrental. All rights reserved.</p>
-      </div>
-    </footer>
+    <SiteFooter />
   </div>
 </template>

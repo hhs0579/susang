@@ -1,13 +1,13 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { setProducts } from '../data/setData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
 import SiteHeader from '../components/SiteHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
 
 const route = useRoute()
-const { getProductById } = useCategoryProducts('set', setProducts)
-
+const categoryKey = computed(() => String(route.params.slug || '').trim().toLowerCase())
+const { getProductById } = useCategoryProducts(categoryKey.value, [])
 const product = computed(() => getProductById(route.params.id))
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
@@ -36,10 +36,7 @@ const parsedOptionGroups = computed(() =>
     isSingle: group.group.includes('Single'),
     items: (group.items || []).map((entry, itemIndex) => {
       const parsed = parseOptionEntry(entry)
-      return {
-        ...parsed,
-        id: `${groupIndex}-${itemIndex}`,
-      }
+      return { ...parsed, id: `${groupIndex}-${itemIndex}` }
     }),
   })),
 )
@@ -60,7 +57,7 @@ const selectedExtraPrice = computed(() => {
   return total
 })
 
-const totalPrice = computed(() => (product.value?.discountPrice || 0) + selectedExtraPrice.value)
+const totalPrice = computed(() => Number(product.value?.originalPrice || 0) + selectedExtraPrice.value)
 const hasDiscountPrice = computed(
   () => Number(product.value?.originalPrice || 0) > Number(product.value?.discountPrice || 0),
 )
@@ -101,7 +98,6 @@ function toggleOption(group, item) {
     selectedOptions[group.groupIndex] = item
     return
   }
-
   const selected = selectedOptions[group.groupIndex] || []
   const exists = selected.some((entry) => entry.id === item.id)
   selectedOptions[group.groupIndex] = exists
@@ -117,7 +113,6 @@ function getSelectedItems(group) {
 
 function buildOptionShareText() {
   const lines = [`[${product.value?.name || ''}] 선택 구성`]
-
   const selectedGroups = parsedOptionGroups.value
     .map((group) => ({ group, items: getSelectedItems(group) }))
     .filter(({ items }) => items.length > 0)
@@ -133,18 +128,15 @@ function buildOptionShareText() {
       lines.push(`- ${group.title}: ${itemText}`)
     })
   }
-
   return lines.join('\n')
 }
 
 async function copyOptionSummary() {
   if (!product.value) return
-
-  const text = buildOptionShareText()
   try {
-    await navigator.clipboard.writeText(text)
+    await navigator.clipboard.writeText(buildOptionShareText())
     showToast('복사되었습니다')
-  } catch (error) {
+  } catch {
     showToast('복사에 실패했습니다')
   }
 }
@@ -155,20 +147,6 @@ function showToast(message) {
   toastTimerId = setTimeout(() => {
     toastMessage.value = ''
   }, 1800)
-}
-
-const menuItems = [
-  { label: 'SET', to: '/set' },
-  { label: 'CAMERA', to: '/camera' },
-  { label: 'LENS', to: '/lens' },
-  { label: 'GRIP', to: '/grip' },
-  { label: 'MONITOR', to: '/monitor' },
-  { label: 'LIGHT', to: '/light' },
-  { label: 'INTERCOM', to: '/intercom' },
-]
-
-function isActiveMenu(label) {
-  return label === 'SET'
 }
 
 watch(
@@ -186,7 +164,7 @@ watch(
 
     <section class="detail-wrap">
       <div class="detail-left">
-        <RouterLink to="/set" class="back-link">&lt; Back to Category</RouterLink>
+        <RouterLink :to="`/${categoryKey}`" class="back-link">&lt; Back to Category</RouterLink>
         <div class="detail-main-image">
           <button type="button" class="image-nav image-nav-left" @click="showPrevImage">&lt;</button>
           <img :src="selectedImage" :alt="product.name" />
@@ -203,23 +181,19 @@ watch(
           >
             <img :src="item" :alt="`${product.name} image ${index + 1}`" />
           </button>
-          <div v-if="!galleryImages.length" class="detail-sub-thumb empty-thumb">
-            이미지 없음
-          </div>
+          <div v-if="!galleryImages.length" class="detail-sub-thumb empty-thumb">이미지 없음</div>
         </div>
       </div>
 
       <div class="detail-right">
-        <p class="detail-brand">{{ product.brand }}</p>
+        <p class="detail-brand">{{ product.section }}</p>
         <h1>{{ product.name }}</h1>
         <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
-        <p class="detail-price">
-          {{ formatWon(displayPrice) }}
-          <span v-if="hasDiscountPrice" class="detail-price-note">SET 구성할인</span>
-        </p>
+        <p class="detail-price">{{ formatWon(displayPrice) }}</p>
 
         <h2>COMPONENT LIST</h2>
         <ul class="component-box">
+          <li v-if="!product.baseComponents.length">기본 구성품 없음</li>
           <li v-for="component in product.baseComponents" :key="component">{{ component }}</li>
         </ul>
 
@@ -249,11 +223,13 @@ watch(
         </div>
       </div>
     </section>
+
+    <SiteFooter />
   </main>
 
   <main v-else class="camera-not-found">
     <h1>상품을 찾을 수 없습니다.</h1>
-    <RouterLink to="/set">세트 목록으로 돌아가기</RouterLink>
+    <RouterLink :to="`/${categoryKey}`">{{ categoryKey.toUpperCase() }} 목록으로 돌아가기</RouterLink>
   </main>
 
   <div

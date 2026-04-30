@@ -1,11 +1,20 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { db, firestoreDatabaseId, hasRequiredConfig, storage } from '../firebase'
+import { useContentStore } from '../stores/contentStore'
 
-const CATEGORY_OPTIONS = ['camera', 'lens', 'grip', 'monitor', 'intercom', 'light', 'set']
+const { state: contentState } = useContentStore()
+const CATEGORY_OPTIONS = computed(() =>
+  Array.isArray(contentState.taxonomyCategories) && contentState.taxonomyCategories.length
+    ? contentState.taxonomyCategories
+    : ['camera', 'lens', 'support', 'grip', 'monitor', 'intercom', 'light', 'set'],
+)
+const SECTION_OPTIONS_BY_CATEGORY = computed(
+  () => contentState.taxonomySectionsByCategory || {},
+)
 
 const isSaving = ref(false)
 const isUploading = ref(false)
@@ -14,7 +23,7 @@ const successMessage = ref('')
 
 const form = reactive({
   category: 'camera',
-  section: '',
+  section: 'CAMERA',
   name: '',
   brand: '',
   originalPrice: 0,
@@ -24,9 +33,23 @@ const form = reactive({
   images: [],
 })
 
+const sectionOptions = computed(() => SECTION_OPTIONS_BY_CATEGORY.value[form.category] || [])
+
+watch(
+  () => form.category,
+  (category) => {
+    const options = SECTION_OPTIONS_BY_CATEGORY.value[category] || []
+    if (!options.length) return
+    if (!options.includes(form.section)) {
+      form.section = options[0]
+    }
+  },
+  { immediate: true },
+)
+
 function resetForm() {
   form.category = 'camera'
-  form.section = ''
+  form.section = 'CAMERA'
   form.name = ''
   form.brand = ''
   form.originalPrice = 0
@@ -75,6 +98,7 @@ function buildPayload() {
     options: parseOptions(),
     images: [...form.images],
     mainImage: form.images[0] || '',
+    order: Date.now(),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   }
@@ -131,6 +155,7 @@ async function uploadImages(event) {
 }
 
 function removeImage(index) {
+  if (!window.confirm('이미지를 삭제할까요?')) return
   form.images = form.images.filter((_, idx) => idx !== index)
 }
 </script>
@@ -157,27 +182,43 @@ function removeImage(index) {
             {{ category }}
           </option>
         </select>
-        <label class="admin-label">섹션명</label>
-        <input v-model="form.section" type="text" placeholder="예: WIRELESS MONITOR, TRIPOD, CART" />
+        <label class="admin-label">세부 카테고리</label>
+        <select v-model="form.section">
+          <option v-for="section in sectionOptions" :key="section" :value="section">
+            {{ section }}
+          </option>
+        </select>
         <label class="admin-label">상품명</label>
-        <input v-model="form.name" type="text" placeholder="예: TERADEK Bolt 4K LT" />
+        <input v-model="form.name" type="text" placeholder="예: CANON C400" />
         <label class="admin-label">브랜드</label>
-        <input v-model="form.brand" type="text" placeholder="예: TERADEK" />
+        <input v-model="form.brand" type="text" placeholder="예: CANON" />
         <label class="admin-label">원가(숫자만)</label>
-        <input v-model.number="form.originalPrice" type="number" min="0" placeholder="예: 80000" />
+        <input
+          v-model.number="form.originalPrice"
+          type="number"
+          min="0"
+          placeholder="예: 70000"
+          @wheel.prevent
+        />
         <label class="admin-label">할인가(숫자만)</label>
-        <input v-model.number="form.discountPrice" type="number" min="0" placeholder="예: 64000" />
+        <input
+          v-model.number="form.discountPrice"
+          type="number"
+          min="0"
+          placeholder="예: 70000"
+          @wheel.prevent
+        />
         <label class="admin-label">기본 구성품</label>
         <textarea
           v-model="form.baseComponentsText"
           rows="5"
-          placeholder="한 줄에 하나씩 입력&#10;예:&#10;Bolt 4K LT TX x 1ea&#10;Bolt 4K LT RX x 1ea"
+          placeholder="한 줄에 하나씩 입력&#10;예:&#10;CANON C400&#10;CFExpress Type B 1TB x 3ea&#10;CANON Charger x 1ea (요청시)"
         ></textarea>
         <label class="admin-label">옵션 (없으면 비워도 됨)</label>
         <textarea
           v-model="form.optionsText"
           rows="8"
-          placeholder="한 줄 형식: 그룹명: 옵션1, 옵션2, 옵션3&#10;예:&#10;Lens (Single, Y): PL +0, EF +10,000&#10;Cart (Multiple, N): Cine Cart +10,000, Wagon +10,000"
+          placeholder="한 줄 형식: 그룹명: 옵션1, 옵션2, 옵션3&#10;예:&#10;Cage Setup (Single, Y): CANON C400 V-Mount Cage +0, CANON C400 Body +0"
         ></textarea>
         <p class="admin-help">
           옵션 입력 규칙: <code>그룹명: 옵션1, 옵션2</code> 형태로 줄마다 작성하세요.

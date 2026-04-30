@@ -10,7 +10,11 @@
     "deploy": "npm run hosting:deploy",
     "hosting:deploy": "npm run build && npx firebase-tools deploy --only hosting",
     "hosting:preview": "npm run build && npx firebase-tools hosting:channel:deploy preview",
-    "migrate:firebase": "node --env-file=.env scripts/migrate-static-data-to-firebase.mjs"
+    "migrate:firebase": "node --env-file=.env scripts/migrate-static-data-to-firebase.mjs",
+    "normalize:discount": "node --env-file=.env scripts/normalize-discount-price.mjs",
+    "move:support": "node --env-file=.env scripts/move-support-products.mjs",
+    "split:grip-sections": "node --env-file=.env scripts/split-grip-sections.mjs",
+    "seed:light": "node --env-file=.env scripts/seed-light-products.mjs"
   },
   "dependencies": {
     "firebase": "^12.12.0",

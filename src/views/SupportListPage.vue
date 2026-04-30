@@ -1,40 +1,34 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { cameraProducts } from '../data/cameraData'
+import { lensProducts } from '../data/lensData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 
-const menuItems = [
-  { label: 'SET', to: '/set' },
-  { label: 'CAMERA', to: '/camera' },
-  { label: 'LENS', to: '/lens' },
-  { label: 'GRIP', to: '/grip' },
-  { label: 'MONITOR', to: '/monitor' },
-  { label: 'LIGHT', to: '/light' },
-  { label: 'INTERCOM', to: '/intercom' },
-]
+const SUPPORT_SECTIONS = new Set(['WIRELESS FOCUS', 'MATTEBOX', 'FILTER'])
+const fallbackSupportProducts = lensProducts.filter((item) => SUPPORT_SECTIONS.has(item.section))
 
-function isActiveMenu(label) {
-  return label === 'CAMERA'
-}
-
-const { products: cameraItems } = useCategoryProducts('camera', cameraProducts)
-const activeBrand = ref('ALL')
+const { products: supportItems } = useCategoryProducts('support', fallbackSupportProducts)
+const activeSubCategory = ref('ALL')
 
 const { categoryTabs } = useCategoryNavigation()
 
-const brandTabs = computed(() => {
-  const brands = [...new Set(cameraItems.value.map((item) => item.brand).filter(Boolean))]
-  return ['ALL', ...brands]
+const supportSubCategoryTabs = ['ALL', 'Wireless Focus', 'MatteBox', 'Filter']
+
+const filteredSupportItems = computed(() => {
+  if (activeSubCategory.value === 'ALL') return supportItems.value
+  return supportItems.value.filter((item) => getSupportSubCategory(item) === activeSubCategory.value)
 })
 
-const filteredCameraItems = computed(() => {
-  if (activeBrand.value === 'ALL') return cameraItems.value
-  return cameraItems.value.filter((item) => item.brand === activeBrand.value)
-})
+function getSupportSubCategory(item) {
+  const section = String(item?.section || '').toUpperCase()
+  if (section.includes('WIRELESS')) return 'Wireless Focus'
+  if (section.includes('MATTEBOX')) return 'MatteBox'
+  if (section.includes('FILTER')) return 'Filter'
+  return 'Filter'
+}
 </script>
 
 <template>
@@ -42,35 +36,35 @@ const filteredCameraItems = computed(() => {
     <SiteHeader />
 
     <section class="camera-header">
-      <h1>CAMERA</h1>
+      <h1>SUPPORT</h1>
       <div class="camera-tabs">
         <RouterLink
           v-for="tab in categoryTabs"
           :key="tab.label"
           :to="tab.to"
           class="camera-tab-link"
-          :class="{ active: tab.label === 'CAMERA' }"
+          :class="{ active: tab.label === 'SUPPORT' }"
         >
           {{ tab.label }}
         </RouterLink>
       </div>
       <div class="camera-brand-tabs">
         <button
-          v-for="brand in brandTabs"
-          :key="brand"
+          v-for="subCategory in supportSubCategoryTabs"
+          :key="subCategory"
           type="button"
           class="camera-brand-button"
-          :class="{ active: activeBrand === brand }"
-          @click="activeBrand = brand"
+          :class="{ active: activeSubCategory === subCategory }"
+          @click="activeSubCategory = subCategory"
         >
-          {{ brand }}
+          {{ subCategory }}
         </button>
       </div>
     </section>
 
     <section class="camera-grid-wrap">
-      <div class="camera-grid">
-        <RouterLink v-for="item in filteredCameraItems" :key="item.id" :to="`/camera/${item.id}`" class="camera-card">
+      <div class="camera-grid lens-grid">
+        <RouterLink v-for="item in filteredSupportItems" :key="item.id" :to="`/support/${item.id}`" class="camera-card">
           <div class="camera-thumb-wrap">
             <img :src="item.image" :alt="item.name" class="camera-thumb" />
           </div>

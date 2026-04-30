@@ -3,13 +3,20 @@ import { computed, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { lensProducts } from '../data/lensData'
 import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import SiteHeader from '../components/SiteHeader.vue'
+import SiteFooter from '../components/SiteFooter.vue'
+
+const SUPPORT_SECTIONS = new Set(['WIRELESS FOCUS', 'MATTEBOX', 'FILTER'])
+const fallbackLensProducts = lensProducts.filter((item) => !SUPPORT_SECTIONS.has(item.section))
 
 const route = useRoute()
-const { getProductById } = useCategoryProducts('lens', lensProducts)
+const { getProductById } = useCategoryProducts('lens', fallbackLensProducts)
 const product = computed(() => getProductById(route.params.id))
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
 const selectedOptions = reactive({})
+const toastMessage = ref('')
+let toastTimerId
 
 const galleryImages = computed(() => {
   if (!product.value) return []
@@ -32,7 +39,7 @@ const menuItems = [
   { label: 'LENS', to: '/lens' },
   { label: 'GRIP', to: '/grip' },
   { label: 'MONITOR', to: '/monitor' },
-  { label: 'LIGHT', to: '/category/light' },
+  { label: 'LIGHT', to: '/light' },
   { label: 'INTERCOM', to: '/intercom' },
 ]
 
@@ -93,7 +100,7 @@ const selectedExtraPrice = computed(() => {
   return total
 })
 
-const totalPrice = computed(() => Number(displayPrice.value || 0) + selectedExtraPrice.value)
+const totalPrice = computed(() => Number(product.value?.originalPrice || 0) + selectedExtraPrice.value)
 
 function isSelected(group, item) {
   const selected = selectedOptions[group.groupIndex]
@@ -115,6 +122,54 @@ function toggleOption(group, item) {
     : [...selected, item]
 }
 
+function getSelectedItems(group) {
+  const selected = selectedOptions[group.groupIndex]
+  if (!selected) return []
+  return group.isSingle ? [selected] : selected
+}
+
+function buildOptionShareText() {
+  const lines = [`[${product.value?.name || ''}] 선택 구성`]
+
+  const selectedGroups = parsedOptionGroups.value
+    .map((group) => ({ group, items: getSelectedItems(group) }))
+    .filter(({ items }) => items.length > 0)
+
+  if (!selectedGroups.length) {
+    lines.push('추가 옵션: 없음')
+  } else {
+    lines.push('추가 옵션:')
+    selectedGroups.forEach(({ group, items }) => {
+      const itemText = items
+        .map((item) => `${item.label}${item.extraPrice ? ` (+${formatWon(item.extraPrice)})` : ''}`)
+        .join(', ')
+      lines.push(`- ${group.title}: ${itemText}`)
+    })
+  }
+
+  return lines.join('\n')
+}
+
+async function copyOptionSummary() {
+  if (!product.value) return
+
+  const text = buildOptionShareText()
+  try {
+    await navigator.clipboard.writeText(text)
+    showToast('복사되었습니다')
+  } catch (error) {
+    showToast('복사에 실패했습니다')
+  }
+}
+
+function showToast(message) {
+  toastMessage.value = message
+  clearTimeout(toastTimerId)
+  toastTimerId = setTimeout(() => {
+    toastMessage.value = ''
+  }, 1800)
+}
+
 function formatWon(value) {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`
 }
@@ -130,24 +185,7 @@ watch(
 
 <template>
   <main v-if="product" class="camera-detail-page">
-    <header class="topbar">
-      <RouterLink to="/" class="logo">
-        <img src="/assets/images/logo1.png" alt="SUSANG RENTAL HOUSE" class="logo-image" />
-      </RouterLink>
-      <nav class="menu">
-        <RouterLink
-          v-for="item in menuItems"
-          :key="item.label"
-          :to="item.to"
-          class="menu-item"
-          :class="{ active: isActiveMenu(item.label) }"
-        >
-          {{ item.label }}
-        </RouterLink>
-        <RouterLink to="/guide" class="menu-item">이용안내</RouterLink>
-        <a href="#" class="menu-item">할인정보</a>
-      </nav>
-    </header>
+    <SiteHeader />
 
     <section class="detail-wrap">
       <div class="detail-left">
@@ -177,9 +215,11 @@ watch(
       <div class="detail-right">
         <p class="detail-brand">{{ product.section }}</p>
         <h1>{{ product.name }}</h1>
-        <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
-        <p class="detail-price">
-          {{ formatWon(displayPrice) }}
+        <p v-if="hasDiscountPrice" class="detail-price lens-price-dual">
+          원가 {{ formatWon(product.originalPrice) }}
+        </p>
+        <p class="detail-price lens-price-dual">
+          할인가 {{ formatWon(displayPrice) }}
           <span v-if="hasDiscountPrice" class="detail-price-note">카메라 대여시 할인가</span>
         </p>
 
@@ -211,33 +251,36 @@ watch(
 
         <div class="detail-checkout">
           <strong>{{ formatWon(totalPrice) }}</strong>
-          <button type="button">선택 견적서 보내기</button>
+          <button type="button" @click="copyOptionSummary">선택 구성 내보내기</button>
         </div>
       </div>
     </section>
 
-    <footer class="footer">
-      <div class="footer-left">
-        <img src="/assets/images/logo2.png" alt="susang rental" class="footer-logo" />
-        <p>상호명 주식회사 수상한렌탈</p>
-        <p>대표 김민국</p>
-        <p>주소 서울시 마포구 잔다리로3길 7 1층</p>
-        <p>사업자등록증번호 326-88-03299</p>
-        <p>이메일 susanghanrental@gmail.com</p>
-        <p>대표 번호 010- 4139-9844</p>
-        <p>카카오톡 채널 http://pf.kakao.com/_xbxcxhhK</p>
-      </div>
-      <div class="footer-right">
-        <p class="footer-account">830501-04-254913</p>
-        <p>국민은행 / 예금주 : 주식회사 수상한렌탈</p>
-        <p class="footer-social">Instagram YouTube</p>
-        <p class="footer-copy">Copyright © susanghanrental. All rights reserved.</p>
-      </div>
-    </footer>
+    <SiteFooter />
   </main>
 
   <main v-else class="camera-not-found">
     <h1>상품을 찾을 수 없습니다.</h1>
     <RouterLink to="/lens">렌즈 목록으로 돌아가기</RouterLink>
   </main>
+
+  <div
+    v-if="toastMessage"
+    style="
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.82);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    "
+  >
+    {{ toastMessage }}
+  </div>
 </template>

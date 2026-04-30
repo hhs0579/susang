@@ -38,6 +38,7 @@ function normalizeProduct(raw, fallbackId, fallbackProduct = null) {
     section: raw.section || '',
     name: raw.name || '',
     brand: raw.brand || '',
+    order: Number.isFinite(Number(raw.order)) ? Number(raw.order) : undefined,
     originalPrice: Number(raw.originalPrice || 0),
     discountPrice: Number(raw.discountPrice || 0),
     image: mainImage,
@@ -70,7 +71,12 @@ export function useCategoryProducts(categoryKey, fallbackProducts = []) {
         const docs = snapshot.docs.map((doc) =>
           normalizeProduct({ id: doc.id, ...doc.data() }, doc.id, fallbackById.value.get(doc.id)),
         )
-        remoteProducts.value = docs.sort((a, b) => a.name.localeCompare(b.name))
+        remoteProducts.value = docs.sort((a, b) => {
+          const aOrder = Number.isFinite(Number(a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER
+          const bOrder = Number.isFinite(Number(b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER
+          if (aOrder !== bOrder) return aOrder - bOrder
+          return a.name.localeCompare(b.name)
+        })
         loading.value = false
       },
       (err) => {
