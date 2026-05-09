@@ -36,7 +36,12 @@ const category = computed(() => {
     <section v-if="category" class="category-landing">
       <h1>{{ category.name }}</h1>
       <p>{{ category.desc }}</p>
-      <img :src="category.imageUrl" :alt="category.name" class="category-hero-image" />
+      <img
+        :src="category.imageUrl"
+        :alt="category.name"
+        class="category-hero-image"
+        fetchpriority="high"
+      />
       <RouterLink v-if="category.name === 'SET'" to="/set" class="section-link category-set-link">
         세트 장비 세부 목록 보기 &gt;
       </RouterLink>

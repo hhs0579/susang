@@ -1,7 +1,9 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, isOptionOnlyProduct, getMinOptionExtraPrice } from '../composables/useCategoryProducts'
+import { displayOptionGroupTitle, isSingleOptionGroup } from '../utils/optionGroupLabels.js'
+import { applyProductOptionDefaults } from '../utils/applyProductOptionDefaults.js'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
 
@@ -32,14 +34,18 @@ function parseOptionEntry(entry) {
 const parsedOptionGroups = computed(() =>
   optionGroups.value.map((group, groupIndex) => ({
     groupIndex,
-    title: group.group,
-    isSingle: group.group.includes('Single'),
+    rawGroup: group.group,
+    title: displayOptionGroupTitle(group.group),
+    isSingle: isSingleOptionGroup(group.group),
     items: (group.items || []).map((entry, itemIndex) => {
       const parsed = parseOptionEntry(entry)
       return { ...parsed, id: `${groupIndex}-${itemIndex}` }
     }),
   })),
 )
+
+const hasComponentList = computed(() => Array.isArray(product.value?.baseComponents) && product.value.baseComponents.length > 0)
+const hasDetailSelect = computed(() => parsedOptionGroups.value.length > 0)
 
 const selectedExtraPrice = computed(() => {
   let total = 0
@@ -57,15 +63,24 @@ const selectedExtraPrice = computed(() => {
   return total
 })
 
-const totalPrice = computed(() => Number(product.value?.originalPrice || 0) + selectedExtraPrice.value)
+const basePriceForCalc = computed(() => {
+  if (hasDetailSelect.value && !hasComponentList.value) return 0
+  return Number(product.value?.originalPrice || product.value?.discountPrice || 0)
+})
+
+const totalPrice = computed(() => basePriceForCalc.value + selectedExtraPrice.value)
 const hasDiscountPrice = computed(
   () => Number(product.value?.originalPrice || 0) > Number(product.value?.discountPrice || 0),
 )
-const displayPrice = computed(() =>
-  hasDiscountPrice.value
+const displayPrice = computed(() => {
+  if (isOptionOnlyProduct(product.value)) {
+    const min = getMinOptionExtraPrice(product.value)
+    return min > 0 ? min : 0
+  }
+  return hasDiscountPrice.value
     ? Number(product.value?.discountPrice || 0)
-    : Number(product.value?.originalPrice || product.value?.discountPrice || 0),
-)
+    : Number(product.value?.originalPrice || product.value?.discountPrice || 0)
+})
 
 function formatWon(value) {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`
@@ -95,6 +110,11 @@ function isSelected(group, item) {
 
 function toggleOption(group, item) {
   if (group.isSingle) {
+    const cur = selectedOptions[group.groupIndex]
+    if (cur && cur.id === item.id) {
+      delete selectedOptions[group.groupIndex]
+      return
+    }
     selectedOptions[group.groupIndex] = item
     return
   }
@@ -113,21 +133,25 @@ function getSelectedItems(group) {
 
 function buildOptionShareText() {
   const lines = [`[${product.value?.name || ''}] 선택 구성`]
-  const selectedGroups = parsedOptionGroups.value
-    .map((group) => ({ group, items: getSelectedItems(group) }))
-    .filter(({ items }) => items.length > 0)
-
-  if (!selectedGroups.length) {
+  const groups = parsedOptionGroups.value
+  if (!groups.length) {
     lines.push('추가 옵션: 없음')
-  } else {
-    lines.push('추가 옵션:')
-    selectedGroups.forEach(({ group, items }) => {
-      const itemText = items
-        .map((item) => `${item.label}${item.extraPrice ? ` (+${formatWon(item.extraPrice)})` : ''}`)
-        .join(', ')
-      lines.push(`- ${group.title}: ${itemText}`)
-    })
+    return lines.join('\n')
   }
+
+  lines.push('추가 옵션:')
+  groups.forEach((group) => {
+    const header = group.title || group.rawGroup
+    const items = getSelectedItems(group)
+    if (!items.length) {
+      lines.push(`- ${header}: (선택 없음)`)
+      return
+    }
+    const itemText = items
+      .map((item) => `${item.label}${item.extraPrice ? ` (+${formatWon(item.extraPrice)})` : ''}`)
+      .join(', ')
+    lines.push(`- ${header}: ${itemText}`)
+  })
   return lines.join('\n')
 }
 
@@ -150,11 +174,15 @@ function showToast(message) {
 }
 
 watch(
-  () => route.params.id,
-  () => {
+  () => [route.params.slug, route.params.id, product.value?.id, product.value?.options],
+  async () => {
     selectedImageIndex.value = 0
     Object.keys(selectedOptions).forEach((key) => delete selectedOptions[key])
+    await nextTick()
+    if (!product.value) return
+    applyProductOptionDefaults(selectedOptions, parsedOptionGroups.value, optionGroups.value)
   },
+  { immediate: true },
 )
 </script>
 
@@ -167,7 +195,7 @@ watch(
         <RouterLink :to="`/${categoryKey}`" class="back-link">&lt; Back to Category</RouterLink>
         <div class="detail-main-image">
           <button type="button" class="image-nav image-nav-left" @click="showPrevImage">&lt;</button>
-          <img :src="selectedImage" :alt="product.name" />
+          <img :src="selectedImage" :alt="product.name" fetchpriority="high" decoding="async" />
           <button type="button" class="image-nav image-nav-right" @click="showNextImage">&gt;</button>
         </div>
         <div class="detail-sub-images">
@@ -179,7 +207,12 @@ watch(
             :class="{ active: selectedImageIndex === index }"
             @click="selectImage(index)"
           >
-            <img :src="item" :alt="`${product.name} image ${index + 1}`" />
+            <img
+              :src="item"
+              :alt="`${product.name} image ${index + 1}`"
+              loading="lazy"
+              decoding="async"
+            />
           </button>
           <div v-if="!galleryImages.length" class="detail-sub-thumb empty-thumb">이미지 없음</div>
         </div>
@@ -187,19 +220,23 @@ watch(
 
       <div class="detail-right">
         <p class="detail-brand">{{ product.section }}</p>
-        <h1>{{ product.name }}</h1>
-        <p v-if="hasDiscountPrice" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
-        <p class="detail-price">{{ formatWon(displayPrice) }}</p>
+        <div class="detail-title-row">
+          <h1>{{ product.name }}</h1>
+          <p v-if="product.titleExtraText" class="detail-title-extra">{{ product.titleExtraText }}</p>
+        </div>
+        <p v-if="hasDiscountPrice && !product.priceDisplayText" class="detail-original">{{ formatWon(product.originalPrice) }}</p>
+        <p class="detail-price">{{ product.priceDisplayText || formatWon(displayPrice) }}</p>
 
-        <h2>COMPONENT LIST</h2>
-        <ul class="component-box">
-          <li v-if="!product.baseComponents.length">기본 구성품 없음</li>
-          <li v-for="component in product.baseComponents" :key="component">{{ component }}</li>
+        <h2 v-if="hasComponentList">COMPONENT LIST</h2>
+        <ul v-if="hasComponentList" class="component-box">
+                    <li v-for="component in product.baseComponents" :key="component">{{ component }}</li>
         </ul>
 
-        <h2>DETAIL SELECT</h2>
-        <div class="option-panels">
-          <details v-for="group in parsedOptionGroups" :key="group.title" class="option-panel" open>
+        <div v-if="hasDetailSelect" class="detail-select-header">
+          <h2>DETAIL SELECT</h2>
+        </div>
+        <div v-if="hasDetailSelect" class="option-panels">
+          <details v-for="group in parsedOptionGroups" :key="group.groupIndex" class="option-panel" open>
             <summary>{{ group.title }}</summary>
             <ul class="option-list">
               <li v-for="item in group.items" :key="item.id">
@@ -219,7 +256,30 @@ watch(
 
         <div class="detail-checkout">
           <strong>{{ formatWon(totalPrice) }}</strong>
-          <button type="button" @click="copyOptionSummary">선택 구성 내보내기</button>
+        </div>
+
+      </div>
+
+      <div
+        v-if="product.detailFooterText || (Array.isArray(product.detailFooterImages) && product.detailFooterImages.length)"
+        class="detail-footer-band"
+      >
+        <div class="detail-footer-content">
+          <p v-if="product.detailFooterText" class="detail-footer-text">{{ product.detailFooterText }}</p>
+          <div
+            v-if="Array.isArray(product.detailFooterImages) && product.detailFooterImages.length"
+            class="detail-footer-images"
+          >
+            <img
+              v-for="(image, index) in product.detailFooterImages"
+              :key="`detail-footer-${index}-${image}`"
+              :src="image"
+              :alt="`${product.name} detail extra ${index + 1}`"
+              class="detail-footer-image"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
         </div>
       </div>
     </section>

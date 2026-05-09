@@ -8,16 +8,21 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run hosting:deploy",
-    "hosting:deploy": "npm run build && npx firebase-tools deploy --only hosting",
+    "hosting:deploy": "npm run build && npx firebase-tools deploy --only hosting,firestore:rules",
     "hosting:preview": "npm run build && npx firebase-tools hosting:channel:deploy preview",
     "migrate:firebase": "node --env-file=.env scripts/migrate-static-data-to-firebase.mjs",
     "normalize:discount": "node --env-file=.env scripts/normalize-discount-price.mjs",
+    "normalize:support": "node --env-file=.env scripts/normalize-support-discount.mjs",
+    "normalize:images": "node --env-file=.env scripts/normalize-product-images.mjs",
+    "clean:138mm": "node --env-file=.env scripts/clean-138mm-filter-base.mjs",
     "move:support": "node --env-file=.env scripts/move-support-products.mjs",
     "split:grip-sections": "node --env-file=.env scripts/split-grip-sections.mjs",
-    "seed:light": "node --env-file=.env scripts/seed-light-products.mjs"
+    "seed:light": "node --env-file=.env scripts/seed-light-products.mjs",
+    "thumbs:backfill": "node --env-file=.env scripts/backfill-thumbnails.mjs"
   },
   "dependencies": {
     "firebase": "^12.12.0",
+    "sharp": "^0.34.5",
     "vue": "^3.5.32",
     "vue-router": "^5.0.4"
   },

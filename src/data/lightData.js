@@ -136,7 +136,13 @@ export const lightProducts = [
     originalPrice: 300000,
     discountPrice: 300000,
     baseComponents: ['ARRI Skypanel S360-C', 'PSU x 1ea', 'Snap Grid x 1ea', 'Hard Case x 1ea', 'B6040X Super Wind-Up Stand x 1ea'],
-    options: [{ group: 'Stand (Single, N)', items: ['B6029X Super Wind-Up Stand Low Base 변경 +0'] }],
+    options: [
+      {
+        group: 'Stand (Single, N)',
+        items: ['B6040X Super Wind-Up Stand +0', 'B6029X Super Wind-Up Stand Low Base 변경 +0'],
+        defaultIndices: [0],
+      },
+    ],
   }),
   lightProduct({
     id: 'infinimat-4x4',
@@ -150,6 +156,7 @@ export const lightProducts = [
       {
         group: 'Stand (Single, N)',
         items: ['Combo Wheel +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'],
+        defaultIndices: [0],
       },
     ],
   }),
@@ -161,7 +168,7 @@ export const lightProducts = [
     originalPrice: 50000,
     discountPrice: 50000,
     baseComponents: ['NOVA II 2X1', 'Yoke x 1ea', 'Flat Diffuser x 1ea', 'AC Power Cable 6m x 1ea', 'Combo x 1ea'],
-    options: [{ group: 'Stand (Single, N)', items: ['Combo Wheel +0'] }],
+    options: [{ group: 'Stand (Single, N)', items: ['Combo Wheel +0'], defaultIndices: [0] }],
   }),
   lightProduct({
     id: 'nova-p600c',
@@ -172,7 +179,7 @@ export const lightProducts = [
     discountPrice: 40000,
     baseComponents: ['NOVA P600C', 'Control Box x 1ea', 'AC Power Cable 6m x 1ea', '5-Pin XLR Head Cable 3m x 1ea', 'Combo x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['Combo Wheel +0'] },
+      { group: 'Stand (Single, N)', items: ['Combo Wheel +0'], defaultIndices: [0] },
       { group: 'LED Modifiers (Multiple, N)', items: ['P600C SoftBox +5,000'] },
     ],
   }),
@@ -194,7 +201,11 @@ export const lightProducts = [
     discountPrice: 0,
     baseComponents: ['PavoSlim 360C', 'Control Box x 1ea', 'SoftBox x 1ea', 'Snap Grid x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
   }),
@@ -207,7 +218,11 @@ export const lightProducts = [
     discountPrice: 35000,
     baseComponents: ['F22C', 'Control Box x 1ea', 'Softbox x 1ea', 'Snap Grid x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
   }),
@@ -220,7 +235,11 @@ export const lightProducts = [
     discountPrice: 35000,
     baseComponents: ['PavoSlim 240C', 'Control Box x 1ea', 'SoftBox x 1ea', 'Snap Grid x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
   }),
@@ -233,7 +252,11 @@ export const lightProducts = [
     discountPrice: 30000,
     baseComponents: ['ALIEN 300C', 'Control Box x 1ea', 'Pop-Up Softbox x 1ea', 'Snap Grid x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 4ea +10,000'] },
     ],
   }),
@@ -246,7 +269,11 @@ export const lightProducts = [
     discountPrice: 20000,
     baseComponents: ['PavoSlim 120C', 'Control Box x 1ea', 'Quick-Open Softbox x 1ea', 'Snap Grid x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
   }),
@@ -259,7 +286,11 @@ export const lightProducts = [
     discountPrice: 20000,
     baseComponents: ['All-In 2 100w', '2x1 SoftBox x 1ea', 'Snap Grid x 1ea', 'Battery Pouch x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
   }),
@@ -274,7 +305,11 @@ export const lightProducts = [
     discountPrice: 75000,
     baseComponents: ['Evoke 2400B', 'PSU x 1ea', '45° Reflector x 1ea', 'Combo x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['Combo Wheel +0', 'Baby Combo 변경 +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['Combo Wheel +0', 'Baby Combo 변경 +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['30° Reflector +5,000', 'Parabolic 150 +10,000', 'Lantern 120 +10,000', 'FL-35E +40,000', 'PJ-NLM-15-30 +50,000'] },
     ],
   }),
@@ -287,7 +322,11 @@ export const lightProducts = [
     discountPrice: 75000,
     baseComponents: ['Storm 1200X', 'Control Box x 1ea', 'Hyper Reflector x 1ea', 'Combo x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['Combo Wheel +0', 'Baby Combo 변경 +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['Combo Wheel +0', 'Baby Combo 변경 +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['Sidus One +20,000', 'Spotlight Mount Max 36° +40,000'] },
     ],
   }),
@@ -300,7 +339,11 @@ export const lightProducts = [
     discountPrice: 50000,
     baseComponents: ['Evoke 900C', 'PSU x 1ea', '45° Reflector x 1ea', 'Combo x 1ea'],
     options: [
-      { group: 'Stand (Single, N)', items: ['Combo Wheel +0', 'Baby Combo 변경 +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'] },
+      {
+        group: 'Stand (Single, N)',
+        items: ['Combo Wheel +0', 'Baby Combo 변경 +0', 'B6039CS Wind-Up Stand 변경 +10,000', 'B6040X Super Wind-Up Stand 변경 +15,000', 'B6029X Super Wind-Up Stand Low Base 변경 +15,000'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['26° Reflector +5,000', 'Parabolic 150 +10,000', 'Lantern 120 +10,000', 'FL-28 +20,000', 'PJ-NLM-15-30 +50,000'] },
     ],
   }),
@@ -313,7 +356,11 @@ export const lightProducts = [
     discountPrice: 75000,
     baseComponents: ['Storm 700X', 'Control Box x 1ea', 'Reflector x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Multiple, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Multiple, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['Sidus One +20,000', 'CF10 +25,000'] },
     ],
   }),
@@ -326,7 +373,11 @@ export const lightProducts = [
     discountPrice: 35000,
     baseComponents: ['Storm 400X', 'Control Box x 1ea', '35° Reflector x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Multiple, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Multiple, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['CF7 +10,000', 'Light Dome II +10,000', 'Sidus One +20,000'] },
     ],
   }),
@@ -339,7 +390,11 @@ export const lightProducts = [
     discountPrice: 25000,
     baseComponents: ['Storm 80C', 'Dome Diffuser x 1ea', 'Reflector x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Multiple, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Multiple, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['CF4 +5,000', 'Lantern 30 +5,000', 'Spotlight Mini 19° +15,000', 'Sidus One +20,000'] },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
@@ -353,7 +408,11 @@ export const lightProducts = [
     discountPrice: 20000,
     baseComponents: ['60X', 'Barn Door x 1ea', 'PSU x 1ea', 'A Stand x 1ea'],
     options: [
-      { group: 'Stand (Multiple, N)', items: ['C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'] },
+      {
+        group: 'Stand (Multiple, N)',
+        items: ['A Stand +0', 'C Stand 변경 +0', 'Grip Arm +0', 'Grip Head +0'],
+        defaultIndices: [0],
+      },
       { group: 'LED Modifiers (Multiple, N)', items: ['Spotlight Mini Zoom +15,000', 'Sidus One +20,000'] },
       { group: 'Battery (Multiple, N)', items: ['Gentree 15A 290w V-Mount Battery x 2ea +5,000'] },
     ],
@@ -427,9 +486,33 @@ export const lightProducts = [
   // LIGHT ARM SET
   lightProduct({ id: 'middle-max-menace-arm', section: 'LIGHT ARM SET', name: 'MIDDLE MAX MENACE ARM', brand: 'MATTHEWS', originalPrice: 150000, discountPrice: 120000 }),
   lightProduct({ id: 'minimax', section: 'LIGHT ARM SET', name: 'MINIMAX', brand: 'MATTHEWS', originalPrice: 30000, discountPrice: 24000 }),
-  lightProduct({ id: 'double-menace-arm', section: 'LIGHT ARM SET', name: 'DOUBLE MENACE ARM', brand: 'SUSANG', originalPrice: 30000, discountPrice: 24000 }),
-  lightProduct({ id: 'single-menace-arm', section: 'LIGHT ARM SET', name: 'SINGLE MENACE ARM', brand: 'MATTHEWS', originalPrice: 20000, discountPrice: 16000 }),
-  lightProduct({ id: 'd650-junior-boom-arm', section: 'LIGHT ARM SET', name: 'D650 JUNIOR BOOM ARM', brand: 'AVENGER', originalPrice: 20000, discountPrice: 16000 }),
+  lightProduct({
+    id: 'double-menace-arm',
+    section: 'LIGHT ARM SET',
+    name: 'DOUBLE MENACE ARM',
+    brand: 'SUSANG',
+    originalPrice: 30000,
+    discountPrice: 24000,
+    options: [{ group: 'Stand (Single, Y)', items: ['Combo +0'], defaultIndices: [0] }],
+  }),
+  lightProduct({
+    id: 'single-menace-arm',
+    section: 'LIGHT ARM SET',
+    name: 'SINGLE MENACE ARM',
+    brand: 'MATTHEWS',
+    originalPrice: 20000,
+    discountPrice: 16000,
+    options: [{ group: 'Stand (Single, Y)', items: ['Combo +0'], defaultIndices: [0] }],
+  }),
+  lightProduct({
+    id: 'd650-junior-boom-arm',
+    section: 'LIGHT ARM SET',
+    name: 'D650 JUNIOR BOOM ARM',
+    brand: 'AVENGER',
+    originalPrice: 20000,
+    discountPrice: 16000,
+    options: [{ group: 'Stand (Single, Y)', items: ['Combo +0'], defaultIndices: [0] }],
+  }),
   lightProduct({ id: 'c-boom', section: 'LIGHT ARM SET', name: 'C BOOM', brand: 'MATTHEWS', originalPrice: 10000, discountPrice: 8000 }),
 
   // LIGHT GRIP
@@ -467,7 +550,15 @@ export const lightProducts = [
   // LIGHT SCRIM
   lightProduct({ id: 'lightstream-mirror-4set', section: 'LIGHT SCRIM', name: 'LIGHTSTREAM MIRROR 4SET', brand: 'DEDOLIGHT', originalPrice: 40000, discountPrice: 32000 }),
   lightProduct({ id: 'small-reflect-reflector-kit', section: 'LIGHT SCRIM', name: 'SMALL EFLECT REFLECTOR KIT', brand: 'DEDOLIGHT', originalPrice: 20000, discountPrice: 16000 }),
-  lightProduct({ id: '12x12-frame-set', section: 'LIGHT SCRIM', name: "12'X12' FRAME SET", brand: 'SUSANG', originalPrice: 35000, discountPrice: 28000 }),
+  lightProduct({
+    id: '12x12-frame-set',
+    section: 'LIGHT SCRIM',
+    name: "12'X12' FRAME SET",
+    brand: 'SUSANG',
+    originalPrice: 35000,
+    discountPrice: 28000,
+    options: [{ group: 'Frame (Single, Y)', items: ['Round +0'], defaultIndices: [0] }],
+  }),
   lightProduct({ id: '12x12-ultra-bounce', section: 'LIGHT SCRIM', name: "12'X12' ULTRA BOUNCE", brand: 'SUSANG', originalPrice: 30000, discountPrice: 24000 }),
   lightProduct({ id: '8x8-diffusion-set', section: 'LIGHT SCRIM', name: "8'X8' DIFFUSION SET", brand: 'AURORA LITE BANK', originalPrice: 25000, discountPrice: 20000 }),
   lightProduct({ id: '48x48-ultra-bounce', section: 'LIGHT SCRIM', name: '48”X48” ULTRA BOUNCE', brand: 'AURORA LITE BANK', originalPrice: 10000, discountPrice: 8000 }),

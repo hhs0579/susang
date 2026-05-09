@@ -1,17 +1,18 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const route = useRoute()
 const { categoryTabs } = useCategoryNavigation()
 const categoryKey = computed(() => String(route.params.slug || '').trim().toLowerCase())
 const categoryTitle = computed(() => categoryKey.value.toUpperCase())
 
-const { products: categoryItems } = useCategoryProducts(categoryKey.value, [])
+const { products: categoryItems } = useCategoryProducts(categoryKey.value, [], { optionsMode: 'lite' })
 const activeSubCategory = ref('ALL')
 
 const subCategoryTabs = computed(() => {
@@ -21,12 +22,12 @@ const subCategoryTabs = computed(() => {
   return ['ALL', ...Array.from(sections).sort((a, b) => a.localeCompare(b))]
 })
 
-const filteredItems = computed(() => {
-  if (activeSubCategory.value === 'ALL') return categoryItems.value
-  return categoryItems.value.filter(
-    (item) => String(item.section || '').trim() === activeSubCategory.value,
-  )
-})
+const sortedItems = computed(() => categoryItems.value)
+
+function isVisibleItem(item) {
+  if (activeSubCategory.value === 'ALL') return true
+  return String(item.section || '').trim() === activeSubCategory.value
+}
 </script>
 
 <template>
@@ -63,18 +64,19 @@ const filteredItems = computed(() => {
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
         <RouterLink
-          v-for="item in filteredItems"
+          v-for="item in sortedItems"
           :key="item.id"
+          v-show="isVisibleItem(item)"
           :to="`/${categoryKey}/${item.id}`"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">
-            <img :src="item.image" :alt="item.name" class="camera-thumb" />
+            <FadeInImg :src="item.thumbnail || item.image" :alt="item.name" img-class="camera-thumb" />
           </div>
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ formatCurrency(item.discountPrice) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>

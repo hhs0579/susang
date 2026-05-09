@@ -2,10 +2,12 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { gripProducts } from '../data/gripData'
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
+import { sortGripListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const menuItems = [
   { label: 'SET', to: '/set' },
@@ -21,21 +23,18 @@ function isActiveMenu(label) {
   return label === 'GRIP'
 }
 
-const { products: gripItems } = useCategoryProducts('grip', gripProducts)
+const { products: gripItems } = useCategoryProducts('grip', gripProducts, { optionsMode: 'lite' })
 const activeSubCategory = ref('ALL')
 
 const { categoryTabs } = useCategoryNavigation()
 
 const gripSubCategoryTabs = ['ALL', 'Gimbal', 'Grip', 'Tripod', 'Cart']
 
-const filteredGripItems = computed(() => {
-  if (activeSubCategory.value === 'ALL') return gripItems.value
-  return gripItems.value.filter((item) => getGripSubCategory(item) === activeSubCategory.value)
-})
+const sortedGripItems = computed(() => sortGripListProducts(gripItems.value, 'ALL'))
 
-function getGripSubCategory(item) {
-  const section = String(item?.section || '').toUpperCase()
-  const name = String(item?.name || '').toUpperCase()
+function mapGripSectionToSubCategory(sectionRaw, nameRaw) {
+  const section = String(sectionRaw || '').toUpperCase()
+  const name = String(nameRaw || '').toUpperCase()
 
   if (section.includes('TRIPOD')) return 'Tripod'
   if (section.includes('CART')) return 'Cart'
@@ -63,6 +62,15 @@ function getGripSubCategory(item) {
     return 'Gimbal'
   }
   return 'Grip'
+}
+
+function getGripSubCategories(item) {
+  const sectionCandidates = [item?.section, ...(Array.isArray(item?.subSections) ? item.subSections : [])]
+  return [...new Set(sectionCandidates.map((s) => mapGripSectionToSubCategory(s, item?.name)).filter(Boolean))]
+}
+
+function isGripVisible(item) {
+  return activeSubCategory.value === 'ALL' || getGripSubCategories(item).includes(activeSubCategory.value)
 }
 </script>
 
@@ -99,14 +107,20 @@ function getGripSubCategory(item) {
 
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
-        <RouterLink v-for="item in filteredGripItems" :key="item.id" :to="`/grip/${item.id}`" class="camera-card">
+        <RouterLink
+          v-for="item in sortedGripItems"
+          :key="item.id"
+          v-show="isGripVisible(item)"
+          :to="`/grip/${item.id}`"
+          class="camera-card"
+        >
           <div class="camera-thumb-wrap">
-            <img :src="item.image" :alt="item.name" class="camera-thumb" />
+            <FadeInImg :src="item.thumbnail || item.image" :alt="item.name" img-class="camera-thumb" />
           </div>
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ formatCurrency(item.discountPrice) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>

@@ -5,10 +5,12 @@ import { lensProducts } from '../data/lensData'
 const SUPPORT_SECTIONS = new Set(['WIRELESS FOCUS', 'MATTEBOX', 'FILTER'])
 const fallbackLensProducts = lensProducts.filter((item) => !SUPPORT_SECTIONS.has(item.section))
 
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
+import { sortLensListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const menuItems = [
   { label: 'SET', to: '/set' },
@@ -24,21 +26,18 @@ function isActiveMenu(label) {
   return label === 'LENS'
 }
 
-const { products: lensItems } = useCategoryProducts('lens', fallbackLensProducts)
+const { products: lensItems } = useCategoryProducts('lens', fallbackLensProducts, { optionsMode: 'lite' })
 const activeSubCategory = ref('ALL')
 
 const { categoryTabs } = useCategoryNavigation()
 
 const lensSubCategoryTabs = ['ALL', 'Prime Lens', 'Zoom Lens', 'E Mount', 'RF Mount', 'Adapter']
 
-const filteredLensItems = computed(() => {
-  if (activeSubCategory.value === 'ALL') return lensItems.value
-  return lensItems.value.filter((item) => getLensSubCategory(item) === activeSubCategory.value)
-})
+const sortedLensItems = computed(() => sortLensListProducts(lensItems.value, 'ALL'))
 
-function getLensSubCategory(item) {
-  const section = String(item?.section || '').toUpperCase()
-  const name = String(item?.name || '').toUpperCase()
+function mapLensSectionToSubCategory(sectionRaw, nameRaw) {
+  const section = String(sectionRaw || '').toUpperCase()
+  const name = String(nameRaw || '').toUpperCase()
 
   if (section === 'PRIME LENS') return 'Prime Lens'
   if (section === 'ZOOM LENS') return 'Zoom Lens'
@@ -52,6 +51,27 @@ function getLensSubCategory(item) {
   if (name.includes('RF')) return 'RF Mount'
   if (name.includes('FE ') || name.includes('E MOUNT') || name.includes(' E ') || name.endsWith(' E')) return 'E Mount'
   return 'Prime Lens'
+}
+
+function getLensSubCategories(item) {
+  const sectionCandidates = [item?.section, ...(Array.isArray(item?.subSections) ? item.subSections : [])]
+  return [
+    ...new Set(
+      sectionCandidates
+        .map((section) => mapLensSectionToSubCategory(section, item?.name))
+        .filter(Boolean),
+    ),
+  ]
+}
+
+function isLensVisible(item) {
+  return activeSubCategory.value === 'ALL' || getLensSubCategories(item).includes(activeSubCategory.value)
+}
+
+function listPrice(item) {
+  const orig = Number(item?.originalPrice || 0)
+  if (orig > 0) return orig
+  return Number(item?.discountPrice || 0)
 }
 </script>
 
@@ -88,14 +108,20 @@ function getLensSubCategory(item) {
 
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
-        <RouterLink v-for="item in filteredLensItems" :key="item.id" :to="`/lens/${item.id}`" class="camera-card">
+        <RouterLink
+          v-for="item in sortedLensItems"
+          :key="item.id"
+          v-show="isLensVisible(item)"
+          :to="`/lens/${item.id}`"
+          class="camera-card"
+        >
           <div class="camera-thumb-wrap">
-            <img :src="item.image" :alt="item.name" class="camera-thumb" />
+            <FadeInImg :src="item.thumbnail || item.image" :alt="item.name" img-class="camera-thumb" />
           </div>
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ formatCurrency(item.discountPrice) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>

@@ -2,10 +2,13 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { setProducts } from '../data/setData'
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
+import { useSetSubCategoryTabs, resolveSetListSections } from '../composables/useSetCameraSectionTabs.js'
+import { sortSetListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const menuItems = [
   { label: 'SET', to: '/set' },
@@ -21,20 +24,18 @@ function isActiveMenu(label) {
   return label === 'SET'
 }
 
-const { products: setItems } = useCategoryProducts('set', setProducts)
-const activeBrand = ref('ALL')
+const { products: setItems } = useCategoryProducts('set', setProducts, { optionsMode: 'lite' })
+const activeSubCategory = ref('ALL')
 
 const { categoryTabs } = useCategoryNavigation()
 
-const brandTabs = computed(() => {
-  const brands = [...new Set(setItems.value.map((item) => item.brand).filter(Boolean))]
-  return ['ALL', ...brands]
-})
+const subCategoryTabs = useSetSubCategoryTabs(setItems)
 
-const filteredSetItems = computed(() => {
-  if (activeBrand.value === 'ALL') return setItems.value
-  return setItems.value.filter((item) => item.brand === activeBrand.value)
-})
+const sortedSetItems = computed(() => sortSetListProducts(setItems.value))
+
+function isSetVisible(item) {
+  return activeSubCategory.value === 'ALL' || resolveSetListSections(item).includes(activeSubCategory.value)
+}
 </script>
 
 <template>
@@ -56,28 +57,34 @@ const filteredSetItems = computed(() => {
       </div>
       <div class="camera-brand-tabs">
         <button
-          v-for="brand in brandTabs"
-          :key="brand"
+          v-for="sub in subCategoryTabs"
+          :key="sub"
           type="button"
           class="camera-brand-button"
-          :class="{ active: activeBrand === brand }"
-          @click="activeBrand = brand"
+          :class="{ active: activeSubCategory === sub }"
+          @click="activeSubCategory = sub"
         >
-          {{ brand }}
+          {{ sub }}
         </button>
       </div>
     </section>
 
     <section class="camera-grid-wrap">
       <div class="camera-grid">
-        <RouterLink v-for="item in filteredSetItems" :key="item.id" :to="`/set/${item.id}`" class="camera-card">
+        <RouterLink
+          v-for="item in sortedSetItems"
+          :key="item.id"
+          v-show="isSetVisible(item)"
+          :to="`/set/${item.id}`"
+          class="camera-card"
+        >
           <div class="camera-thumb-wrap">
-            <img :src="item.image" :alt="item.name" class="camera-thumb" />
+            <FadeInImg :src="item.thumbnail || item.image" :alt="item.name" img-class="camera-thumb" />
           </div>
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ formatCurrency(item.discountPrice) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>

@@ -22,6 +22,7 @@ const studioMonitor = {
     'Atomos SUMO 19SE +20,000',
     'SMALLHD CINE18 +40,000',
   ],
+  defaultIndices: [0],
 }
 
 const wirelessLt = {
@@ -32,6 +33,7 @@ const wirelessLt = {
     'Teradek Serv Pro +30,000',
     'SMALLHD CINE 7 Bolt 4K RX +70,000',
   ],
+  defaultIndices: [0],
 }
 
 const wirelessBolt = {
@@ -42,6 +44,7 @@ const wirelessBolt = {
     'Teradek Serv Pro +30,000',
     'SMALLHD CINE 7 Bolt 4K RX +70,000',
   ],
+  defaultIndices: [0],
 }
 
 const wirelessBolt11 = {
@@ -52,21 +55,19 @@ const wirelessBolt11 = {
     'Teradek Serv Pro +30,000',
     'SMALLHD CINE 7 Bolt 4K RX +70,000',
   ],
+  defaultIndices: [0],
 }
 
 const wirelessBolt11NoSmallhd = {
   group: 'Wireless Transmitter (Multiple, Y)',
   items: ['Teradek Bolt 1:1 +0', 'Teradek Bolt RX +30,000', 'Teradek Serv Pro +30,000'],
+  defaultIndices: [0],
 }
 
 const wirelessFocusNs2 = {
   group: 'Wireless Focus (Single, Y)',
   items: ['Tilta Nucleus-m II +0', 'ARRI HI-5 XS +115,000'],
-}
-
-const wirelessFocusNs125 = {
-  group: 'Wireless Focus (Single, Y)',
-  items: ['Tilta Nucleus-m II +0', 'ARRI HI-5 XS +125,000'],
+  defaultIndices: [0],
 }
 
 const focusGripMultiN = {
@@ -87,11 +88,13 @@ const cartMultiN20 = {
 const head99_18p = {
   group: 'Head (Single, Y)',
   items: ['SACHTLER 9+9 +0', 'SACHTLER 18P +0'],
+  defaultIndices: [0],
 }
 
 const matteLmb = {
   group: 'Matte Box (Single, Y)',
   items: ['ARRI LMB 2+1 stage +0'],
+  defaultIndices: [0],
 }
 
 const onCam01F7hs = {
@@ -102,6 +105,7 @@ const onCam01F7hs = {
     'SMALLHD INDIE7 +5,000',
     'SMALLHD CINE7 +15,000',
   ],
+  defaultIndices: [0],
 }
 
 const onCam02F7hs = {
@@ -112,6 +116,7 @@ const onCam02F7hs = {
     'SMALLHD INDIE7 +5,000',
     'SMALLHD CINE7 +15,000',
   ],
+  defaultIndices: [0],
 }
 
 const onCam01F7h = {
@@ -123,6 +128,7 @@ const onCam01F7h = {
     'SMALLHD CINE5 + 5,000',
     'SMALLHD CINE7 +15,000',
   ],
+  defaultIndices: [0],
 }
 
 const onCam02F7h = {
@@ -134,31 +140,37 @@ const onCam02F7h = {
     'SMALLHD CINE5 + 5,000',
     'SMALLHD CINE7 +15,000',
   ],
+  defaultIndices: [0],
 }
 
 const bodyLplPlEf = {
   group: 'Body Mount (Multiple, Y)',
   items: ['LPL +0', 'PL +0', 'EF +10,000'],
+  defaultIndices: [0, 1],
 }
 
 const bodyEPlEf = {
   group: 'Body Mount (Multiple, Y)',
   items: ['E +0', 'PL +0', 'EF +10,000'],
+  defaultIndices: [0],
 }
 
 const bodyPlEf = {
   group: 'Body Mount (Multiple, Y)',
   items: ['PL +0', 'EF +10,000'],
+  defaultIndices: [0],
 }
 
 const buranoMatte = {
   group: 'Matte Box (Single, Y)',
   items: ['Tilta MB-T12 +0', 'Misfit Atom +0', 'Tilta Mirage MatteBox +0', 'LMB 4x5 +10,000'],
+  defaultIndices: [0],
 }
 
 const matteTilta3 = {
   group: 'Matte Box (Single, Y)',
   items: ['Tilta MB-T12 +0', 'Misfit Atom +0', 'Tilta Mirage MatteBox +0'],
+  defaultIndices: [0],
 }
 
 export const setProducts = [
@@ -166,6 +178,7 @@ export const setProducts = [
     id: 'set-arri-alexa-35',
     name: 'ARRI ALEXA 35',
     brand: 'ARRI',
+    section: 'ARRI',
     originalPrice: 1000000,
     discountPrice: 600000,
     image: IMG.alexa35,
@@ -184,6 +197,7 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['ARRI ALEXA 35 Cage Setup +0', 'IGNITE Cage Setup (Movi Pro 반출시) +0'],
+        defaultIndices: [0],
       },
       bodyLplPlEf,
       head99_18p,
@@ -208,6 +222,7 @@ export const setProducts = [
     id: 'set-sony-venice2',
     name: 'SONY VENICE2',
     brand: 'SONY',
+    section: 'SONY',
     originalPrice: 1000000,
     discountPrice: 600000,
     image: IMG.venice2,
@@ -223,6 +238,7 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['Sony Venice2 Cage Setup +0', 'IGNITE Cage Setup (Movi Pro 반출시) +0'],
+        defaultIndices: [0],
       },
       bodyEPlEf,
       head99_18p,
@@ -242,6 +258,7 @@ export const setProducts = [
     id: 'set-arri-alexa-mini-lf',
     name: 'ARRI ALEXA MINI LF',
     brand: 'ARRI',
+    section: 'ARRI',
     originalPrice: 650000,
     discountPrice: 350000,
     image: IMG.miniLf,
@@ -257,6 +274,7 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['ARRI ALEXA MINI LF Cage Setup +0', 'IGNITE Cage Setup (Movi Pro 반출시) +0'],
+        defaultIndices: [0],
       },
       bodyLplPlEf,
       head99_18p,
@@ -278,6 +296,7 @@ export const setProducts = [
     id: 'set-arri-alexa-mini',
     name: 'ARRI ALEXA MINI',
     brand: 'ARRI',
+    section: 'ARRI',
     originalPrice: 450000,
     discountPrice: 300000,
     image: IMG.alexaMini,
@@ -294,43 +313,19 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['ARRI ALEXA MINI Cage Setup +0', 'IGNITE Cage Setup (Movi Pro 반출시) +0'],
+        defaultIndices: [0],
       },
       bodyPlEf,
       head99_18p,
       matteLmb,
-      {
-        group: '#01 On-Camera Monitor (Single, Y)',
-        items: [
-          'TVLOGIC F-7H +0',
-          'TVLOGIC F-5A +0',
-          'SMALLHD INDIE7 +5,000',
-          'SMALLHD CINE5 + 5,000',
-          'SMALLHD CINE7 +15,000',
-        ],
-      },
-      {
-        group: '#02 On-Camera Monitor (Single, Y)',
-        items: [
-          'TVLOGIC F-7H +0',
-          'TVLOGIC F-5A +0',
-          'SMALLHD INDIE7 +5,000',
-          'SMALLHD CINE5 + 5,000',
-          'SMALLHD CINE7 +15,000',
-        ],
-      },
+      onCam01F7h,
+      onCam02F7h,
       studioMonitor,
-      {
-        group: 'Wireless Transmitter (Multiple, Y)',
-        items: [
-          'Teradek Bolt 1:2 +0',
-          'Teradek Bolt RX +30,000',
-          'Teradek Serv Pro +30,000',
-          'SMALLHD CINE 7 Bolt 4K RX +70,000',
-        ],
-      },
+      wirelessBolt,
       {
         group: 'Wireless Focus (Single, Y)',
         items: ['Tilta Nucleus-m +0', 'Tilta Nucleus-m II +10,000', 'ARRI HI-5 XS +125,000'],
+        defaultIndices: [0],
       },
       focusGripMultiN,
       {
@@ -344,6 +339,7 @@ export const setProducts = [
     id: 'sony-burano-full-set-ver-2',
     name: 'SONY BURANO FULL SET ver.2',
     brand: 'SONY',
+    section: 'SONY',
     originalPrice: 460000,
     discountPrice: 290000,
     image: IMG.buranoV2,
@@ -360,18 +356,24 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['SONY BURANO Cage Setup +0', 'IGNITE Cage Setup (Movi Pro 반출시) +0'],
+        defaultIndices: [0],
       },
       bodyEPlEf,
       {
         group: 'Head (Single, Y)',
         items: ['SACHTLER 25P +0', 'SACHTLER 18P +0'],
+        defaultIndices: [0],
       },
       buranoMatte,
       onCam01F7h,
       onCam02F7h,
       studioMonitor,
       wirelessBolt,
-      wirelessFocusNs125,
+      {
+        group: 'Wireless Focus (Single, Y)',
+        items: ['Tilta Nucleus-m +0', 'Tilta Nucleus-m II +10,000', 'ARRI HI-5 XS +125,000'],
+        defaultIndices: [0],
+      },
       focusGripMultiN,
       { group: 'Hand Grip (Single, N)', items: ['Wooden Shoulder Rig V3 +25,000'] },
       cartMultiN,
@@ -381,6 +383,7 @@ export const setProducts = [
     id: 'sony-burano-full-set-ver-1',
     name: 'SONY BURANO FULL SET ver.1',
     brand: 'SONY',
+    section: 'SONY',
     originalPrice: 280000,
     discountPrice: 220000,
     image: IMG.buranoV1,
@@ -397,11 +400,13 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['SONY BURANO Cage Setup +0', 'IGNITE Cage Setup (Movi Pro 반출시) +0'],
+        defaultIndices: [0],
       },
       bodyEPlEf,
       {
         group: 'Head (Single, Y)',
         items: ['SACHTLER 18P +0', 'SACHTLER 25P +15,000'],
+        defaultIndices: [0],
       },
       buranoMatte,
       {
@@ -413,6 +418,7 @@ export const setProducts = [
           'SMALLHD INDIE7 +5,000',
           'SMALLHD CINE7 +15,000',
         ],
+        defaultIndices: [0],
       },
       studioMonitor,
       wirelessBolt11,
@@ -428,6 +434,7 @@ export const setProducts = [
     id: 'set-arri-amira',
     name: 'ARRI AMIRA',
     brand: 'ARRI',
+    section: 'ARRI',
     originalPrice: 300000,
     discountPrice: 150000,
     image: IMG.amira,
@@ -441,10 +448,11 @@ export const setProducts = [
       'Gentree Cube station charge 2ch x 1ea',
     ],
     options: [
-      { group: 'Cage Setup (Single, Y)', items: ['ARRI AMIRA Cage Setup +0'] },
+      { group: 'Cage Setup (Single, Y)', items: ['ARRI AMIRA Cage Setup +0'], defaultIndices: [0] },
       {
         group: 'Head (Single, Y)',
         items: ['SACHTLER 25P +0', 'SACHTLER 9+9 +30,000'],
+        defaultIndices: [0],
       },
       matteTilta3,
       onCam01F7h,
@@ -462,6 +470,7 @@ export const setProducts = [
     id: 'canon-c400-full-set',
     name: 'CANON C400 FULL SET',
     brand: 'CANON',
+    section: 'CANON',
     originalPrice: 150000,
     discountPrice: 120000,
     image: IMG.c400,
@@ -480,19 +489,11 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['CANON C400 V-Mount Cage +0', 'CANON C400 Body +0'],
+        defaultIndices: [0],
       },
-      { group: 'Head (Single, Y)', items: ['SACHTLER 18P +0'] },
+      { group: 'Head (Single, Y)', items: ['SACHTLER 18P +0'], defaultIndices: [0] },
       buranoMatte,
-      {
-        group: 'On-Camera Monitor (Single, Y)',
-        items: [
-          'TVLOGIC F-7H +0',
-          'TVLOGIC F-5A +0',
-          'SMALLHD CINE5 + 5,000',
-          'SMALLHD INDIE7 +5,000',
-          'SMALLHD CINE7 +15,000',
-        ],
-      },
+      { ...onCam01F7h, group: 'On-Camera Monitor (Single, Y)' },
       studioMonitor,
       wirelessBolt11NoSmallhd,
       {
@@ -507,6 +508,7 @@ export const setProducts = [
     id: 'sony-fx9-full-set',
     name: 'SONY FX9 FULL SET',
     brand: 'SONY',
+    section: 'SONY',
     originalPrice: 150000,
     discountPrice: 120000,
     image: IMG.fx9,
@@ -525,12 +527,14 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['SONY FX9 Tilta V-Mount Cage +0', 'SONY FX9 Body +0'],
+        defaultIndices: [0],
       },
       {
         group: 'Body Mount (Multiple, Y)',
         items: ['E +0', 'PL +10,000', 'EF +10,000'],
+        defaultIndices: [0],
       },
-      { group: 'Head (Single, Y)', items: ['SACHTLER 18P +0'] },
+      { group: 'Head (Single, Y)', items: ['SACHTLER 18P +0'], defaultIndices: [0] },
       buranoMatte,
       onCam01F7h,
       studioMonitor,
@@ -543,6 +547,7 @@ export const setProducts = [
           'Teradek Bolt RX +30,000',
           'Teradek Serv Pro +30,000',
         ],
+        defaultIndices: [0],
       },
       {
         group: 'Focus (Multiple, N)',
@@ -559,6 +564,7 @@ export const setProducts = [
     id: 'sony-fx6-full-set',
     name: 'SONY FX6 FULL SET',
     brand: 'SONY',
+    section: 'SONY',
     originalPrice: 150000,
     discountPrice: 120000,
     image: IMG.fx6,
@@ -581,26 +587,20 @@ export const setProducts = [
           'SONY FX6 Body +0',
           'IGNITE Cage Setup (Movi Pro 반출시) +0',
         ],
+        defaultIndices: [0],
       },
       {
         group: 'Body Mount (Single, Y)',
         items: ['E +0', 'PL +10,000', 'EF +10,000'],
+        defaultIndices: [0],
       },
       {
         group: 'Head / Tripod (Single, Y)',
         items: ['SACHTLER 18P +0', 'AKTIV6 + Flowtech +0'],
+        defaultIndices: [0],
       },
       buranoMatte,
-      {
-        group: 'On-Camera Monitor (Single, Y)',
-        items: [
-          'TVLOGIC F-7H +0',
-          'TVLOGIC F-5A +0',
-          'SMALLHD CINE5 + 5,000',
-          'SMALLHD INDIE7 +5,000',
-          'SMALLHD CINE7 +15,000',
-        ],
-      },
+      { ...onCam01F7h, group: 'On-Camera Monitor (Single, Y)' },
       studioMonitor,
       {
         group: 'Wireless Transmitter (Multiple, Y)',
@@ -611,6 +611,7 @@ export const setProducts = [
           'Teradek Bolt RX +30,000',
           'Teradek Serv Pro +30,000',
         ],
+        defaultIndices: [0],
       },
       {
         group: 'Focus (Single, N)',
@@ -627,6 +628,7 @@ export const setProducts = [
     id: 'canon-c80-full-set',
     name: 'CANON C80 FULL SET',
     brand: 'CANON',
+    section: 'CANON',
     originalPrice: 140000,
     discountPrice: 112000,
     image: IMG.c80,
@@ -644,22 +646,15 @@ export const setProducts = [
       {
         group: 'Cage Setup (Single, Y)',
         items: ['CANON C80 V-Mount Cage +0', 'CANON C80 Body +0'],
+        defaultIndices: [0],
       },
       {
         group: 'Head / Tripod (Single, Y)',
         items: ['SACHTLER 18P +0', 'AKTIV6 + Flowtech +0'],
+        defaultIndices: [0],
       },
       buranoMatte,
-      {
-        group: 'On-Camera Monitor (Single, Y)',
-        items: [
-          'TVLOGIC F-7H +0',
-          'TVLOGIC F-5A +0',
-          'SMALLHD CINE5 + 5,000',
-          'SMALLHD INDIE7 +5,000',
-          'SMALLHD CINE7 +15,000',
-        ],
-      },
+      { ...onCam01F7h, group: 'On-Camera Monitor (Single, Y)' },
       studioMonitor,
       {
         group: 'Wireless Transmitter (Multiple, Y)',
@@ -670,6 +665,7 @@ export const setProducts = [
           'Teradek Bolt RX +30,000',
           'Teradek Serv Pro +30,000',
         ],
+        defaultIndices: [0],
       },
       {
         group: 'Focus (Single, N)',

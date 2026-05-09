@@ -33,7 +33,11 @@ watch(
 <template>
   <header class="topbar">
     <RouterLink to="/" class="logo">
-      <img src="/assets/images/logo1.png" alt="SUSANG RENTAL HOUSE" class="logo-image" />
+      <img
+        src="/assets/images/logo1.png"
+        alt="SUSANG RENTAL HOUSE"
+        class="logo-image"
+      />
     </RouterLink>
     <button
       type="button"

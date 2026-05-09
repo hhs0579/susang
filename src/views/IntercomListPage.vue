@@ -1,10 +1,13 @@
 <script setup>
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { intercomProducts } from '../data/intercomData'
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
+import { sortIntercomListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const menuItems = [
   { label: 'SET', to: '/set' },
@@ -20,9 +23,11 @@ function isActiveMenu(label) {
   return label === 'INTERCOM'
 }
 
-const { products: intercomItems } = useCategoryProducts('intercom', intercomProducts)
+const { products: intercomItems } = useCategoryProducts('intercom', intercomProducts, { optionsMode: 'lite' })
 
 const { categoryTabs } = useCategoryNavigation()
+
+const sortedIntercomItems = computed(() => sortIntercomListProducts(intercomItems.value))
 
 </script>
 
@@ -48,18 +53,18 @@ const { categoryTabs } = useCategoryNavigation()
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
         <RouterLink
-          v-for="item in intercomItems"
+          v-for="item in sortedIntercomItems"
           :key="item.id"
           :to="`/intercom/${item.id}`"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">
-            <img :src="item.image" :alt="item.name" class="camera-thumb" />
+            <FadeInImg :src="item.thumbnail || item.image" :alt="item.name" img-class="camera-thumb" />
           </div>
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ formatCurrency(item.discountPrice) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>

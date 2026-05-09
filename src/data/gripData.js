@@ -24,7 +24,7 @@ export const gripProducts = [
         group: 'Camera Power Cable (Single, Y)',
         items: ['ARRI +0', 'RED DSMC1,2 +0', 'RED KOMODO +0', 'XLR +0', 'SONY FX6 / FX9 +0'],
       },
-      { group: 'Plate (Single, Y)', items: ['Ignite +0', 'Alexa 35 Ignite +0', 'Basic +0'] },
+      { group: 'Plate (Single, Y)', items: ['Ignite +0', 'Alexa 35 Ignite +0', 'Basic +0'], defaultIndices: [0] },
       { group: 'ACC for Mimic (Multiple, N)', items: ['AKTIV6 + Flowtech +30,000', '100mm Half Bowl +5,000'] },
     ],
   },
@@ -264,7 +264,13 @@ export const gripProducts = [
     image: '/assets/images/homepage_img/03_Grip,Gimbal/03_Tripod/9+9 HEAD SET.jpg',
     accessories: [],
     baseComponents: ['Sachtler 9+9 Fluid Head'],
-    options: [{ group: 'Tripod (Multiple, Y)', items: ['150mm Standard +0', '150mm Baby +10,000', '150mm Hihat +10,000'] }],
+    options: [
+      {
+        group: 'Tripod (Multiple, Y)',
+        items: ['150mm Standard +0', '150mm Baby +10,000', '150mm Hihat +10,000'],
+        defaultIndices: [0],
+      },
+    ],
   },
   {
     id: 'head-25ii-set',
@@ -276,7 +282,13 @@ export const gripProducts = [
     image: '/assets/images/homepage_img/03_Grip,Gimbal/03_Tripod/25II HEAD SET.jpg',
     accessories: [],
     baseComponents: ['Sachtler 25II Fluid Head'],
-    options: [{ group: 'Tripod (Multiple, Y)', items: ['150mm Standard +0', '150mm Baby +10,000', '150mm Hihat +10,000'] }],
+    options: [
+      {
+        group: 'Tripod (Multiple, Y)',
+        items: ['150mm Standard +0', '150mm Baby +10,000', '150mm Hihat +10,000'],
+        defaultIndices: [0],
+      },
+    ],
   },
   {
     id: 'head-100mm-set',
@@ -288,7 +300,13 @@ export const gripProducts = [
     image: '/assets/images/homepage_img/03_Grip,Gimbal/03_Tripod/100MM HEAD SET.jpg',
     accessories: [],
     baseComponents: ['Sachtler 100mm Fluid Head'],
-    options: [{ group: 'Tripod (Multiple, Y)', items: ['100mm Standard +0', '100mm Baby +5,000', '100mm Hihat +5,000'] }],
+    options: [
+      {
+        group: 'Tripod (Multiple, Y)',
+        items: ['100mm Standard +0', '100mm Baby +5,000', '100mm Hihat +5,000'],
+        defaultIndices: [0],
+      },
+    ],
   },
   {
     id: 'aktiv6-flowtech',

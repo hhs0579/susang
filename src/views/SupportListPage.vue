@@ -2,32 +2,40 @@
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { lensProducts } from '../data/lensData'
-import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
+import { sortSupportListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const SUPPORT_SECTIONS = new Set(['WIRELESS FOCUS', 'MATTEBOX', 'FILTER'])
 const fallbackSupportProducts = lensProducts.filter((item) => SUPPORT_SECTIONS.has(item.section))
 
-const { products: supportItems } = useCategoryProducts('support', fallbackSupportProducts)
+const { products: supportItems } = useCategoryProducts('support', fallbackSupportProducts, { optionsMode: 'lite' })
 const activeSubCategory = ref('ALL')
 
 const { categoryTabs } = useCategoryNavigation()
 
 const supportSubCategoryTabs = ['ALL', 'Wireless Focus', 'MatteBox', 'Filter']
 
-const filteredSupportItems = computed(() => {
-  if (activeSubCategory.value === 'ALL') return supportItems.value
-  return supportItems.value.filter((item) => getSupportSubCategory(item) === activeSubCategory.value)
-})
+const sortedSupportItems = computed(() => sortSupportListProducts(supportItems.value))
 
-function getSupportSubCategory(item) {
-  const section = String(item?.section || '').toUpperCase()
+function mapSupportSectionToSubCategory(sectionRaw) {
+  const section = String(sectionRaw || '').toUpperCase()
   if (section.includes('WIRELESS')) return 'Wireless Focus'
   if (section.includes('MATTEBOX')) return 'MatteBox'
   if (section.includes('FILTER')) return 'Filter'
   return 'Filter'
+}
+
+function getSupportSubCategories(item) {
+  const sectionCandidates = [item?.section, ...(Array.isArray(item?.subSections) ? item.subSections : [])]
+  return [...new Set(sectionCandidates.map((s) => mapSupportSectionToSubCategory(s)).filter(Boolean))]
+}
+
+function isSupportVisible(item) {
+  return activeSubCategory.value === 'ALL' || getSupportSubCategories(item).includes(activeSubCategory.value)
 }
 </script>
 
@@ -64,14 +72,20 @@ function getSupportSubCategory(item) {
 
     <section class="camera-grid-wrap">
       <div class="camera-grid lens-grid">
-        <RouterLink v-for="item in filteredSupportItems" :key="item.id" :to="`/support/${item.id}`" class="camera-card">
+        <RouterLink
+          v-for="item in sortedSupportItems"
+          :key="item.id"
+          v-show="isSupportVisible(item)"
+          :to="`/support/${item.id}`"
+          class="camera-card"
+        >
           <div class="camera-thumb-wrap">
-            <img :src="item.image" :alt="item.name" class="camera-thumb" />
+            <FadeInImg :src="item.thumbnail || item.image" :alt="item.name" img-class="camera-thumb" />
           </div>
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ formatCurrency(item.discountPrice) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>
