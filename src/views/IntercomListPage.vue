@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { intercomProducts } from '../data/intercomData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { sortIntercomListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
@@ -55,7 +56,7 @@ const sortedIntercomItems = computed(() => sortIntercomListProducts(intercomItem
         <RouterLink
           v-for="item in sortedIntercomItems"
           :key="item.id"
-          :to="`/intercom/${item.id}`"
+          :to="productDetailPath('intercom', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

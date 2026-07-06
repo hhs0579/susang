@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { cameraProducts } from '../data/cameraData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { useCameraSubCategoryTabs, resolveCameraListSections } from '../composables/useSetCameraSectionTabs.js'
 import { sortCameraListProducts } from '../utils/categoryListOrder.js'
@@ -75,7 +76,7 @@ function isCameraVisible(item) {
           v-for="item in sortedCameraItems"
           :key="item.id"
           v-show="isCameraVisible(item)"
-          :to="`/camera/${item.id}`"
+          :to="productDetailPath('camera', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

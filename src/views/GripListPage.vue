@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { gripProducts } from '../data/gripData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { sortGripListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
@@ -111,7 +112,7 @@ function isGripVisible(item) {
           v-for="item in sortedGripItems"
           :key="item.id"
           v-show="isGripVisible(item)"
-          :to="`/grip/${item.id}`"
+          :to="productDetailPath('grip', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

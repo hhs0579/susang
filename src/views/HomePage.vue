@@ -7,6 +7,7 @@ import { useContentStore } from "../stores/contentStore";
 import SiteHeader from "../components/SiteHeader.vue";
 import SiteFooter from "../components/SiteFooter.vue";
 import { categoryPathFor } from "../composables/useCategoryNavigation";
+import { productDetailPath } from "../utils/productSlug";
 import { getDisplayHeadlinePrice } from "../composables/useCategoryProducts";
 
 const guideItems = [
@@ -175,19 +176,10 @@ function preloadHeroImages(urls) {
 const heroDisplayImages = computed(() =>
   loadedHeroImages.value.length ? loadedHeroImages.value : heroBannerImages.value,
 );
-const heroBannerTitle = computed(() =>
-  String(state.heroBannerTitle || "").trim() || "감독이 운영하는 감독을 위한 렌탈",
-);
+const heroBannerTitle = computed(() => String(state.heroBannerTitle ?? "").trim());
 const heroBannerDescriptionLines = computed(() => {
-  const lines = Array.isArray(state.heroBannerDescriptionLines)
-    ? state.heroBannerDescriptionLines.map((line) => String(line || "").trim()).filter(Boolean)
-    : [];
-  if (lines.length) return lines;
-  return [
-    "수상한렌탈은 수상한움직임 프로덕션 소속 렌탈샵입니다.",
-    "촬영감독이 운영하며 감독님들께 저렴하고",
-    "실속 있는 장비 세팅으로 찾아뵙겠습니다.",
-  ];
+  if (!Array.isArray(state.heroBannerDescriptionLines)) return [];
+  return state.heroBannerDescriptionLines.map((line) => String(line || "").trim()).filter(Boolean);
 });
 
 const heroSlideCount = computed(() => heroDisplayImages.value.length);
@@ -255,16 +247,9 @@ function onHeroTouchEnd(event) {
   if (dx < 0) nextHeroSlide();
   else prevHeroSlide();
 }
-const arrivalLinkMap = {
-  set: (id) => `/set/${id}`,
-  camera: (id) => `/camera/${id}`,
-  lens: (id) => `/lens/${id}`,
-  support: (id) => `/support/${id}`,
-  grip: (id) => `/grip/${id}`,
-  monitor: (id) => `/monitor/${id}`,
-  light: (id) => `/light/${id}`,
-  intercom: (id) => `/intercom/${id}`,
-};
+function arrivalItemLink(item) {
+  return productDetailPath(item?.category, item);
+}
 
 function getTimestampMs(value) {
   if (!value) return 0;
@@ -304,22 +289,33 @@ onUnmounted(() => {
 
 const ARRIVAL_VISIBLE_COUNT = 6;
 
+/** New Arrivals: 신규 등록(createdAt) 우선. 썸네일만 수정한 기존 상품(updatedAt)은 아래로 */
+function compareArrivalItems(a, b) {
+  const aCreated = getTimestampMs(a?.createdAt);
+  const bCreated = getTimestampMs(b?.createdAt);
+
+  if (aCreated > 0 && bCreated > 0) return bCreated - aCreated;
+  if (aCreated > 0) return -1;
+  if (bCreated > 0) return 1;
+
+  return getTimestampMs(b?.updatedAt) - getTimestampMs(a?.updatedAt);
+}
+
 const arrivalItems = computed(() => {
   if (!remoteProducts.value.length) return state.arrivalItems.slice(0, ARRIVAL_VISIBLE_COUNT);
 
-  return [...remoteProducts.value]
-    .sort((a, b) => {
-      const aTs = getTimestampMs(a.createdAt) || getTimestampMs(a.updatedAt);
-      const bTs = getTimestampMs(b.createdAt) || getTimestampMs(b.updatedAt);
-      return bTs - aTs;
-    })
+  const registered = remoteProducts.value.filter((item) => getTimestampMs(item?.createdAt) > 0);
+  const pool = registered.length ? registered : remoteProducts.value;
+
+  return [...pool]
+    .sort(compareArrivalItems)
     .slice(0, ARRIVAL_VISIBLE_COUNT)
     .map((item) => ({
       id: item.id,
       title: item.name || "상품명 없음",
       price: `₩${Number(getDisplayHeadlinePrice(item) || 0).toLocaleString("ko-KR")}`,
       imageUrl: item.mainImage || (Array.isArray(item.images) ? item.images[0] : "") || "",
-      link: arrivalLinkMap[item.category]?.(item.id) || `${categoryPathFor(item.category)}/${item.id}`,
+      link: arrivalItemLink(item) || categoryPathFor(item.category),
     }));
 });
 
@@ -443,12 +439,12 @@ function getCategoryLink(name) {
         class="hero-bg-layer"
         :class="{ 'is-active': index === activeHeroIndex % Math.max(heroSlideCount, 1) }"
         :style="{
-          backgroundImage: `linear-gradient(90deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.28)), url('${image}')`,
+          backgroundImage: `url('${image}')`,
         }"
       ></div>
       <div class="hero-overlay">
-        <h1>{{ heroBannerTitle }}</h1>
-        <p>
+        <h1 v-if="heroBannerTitle">{{ heroBannerTitle }}</h1>
+        <p v-if="heroBannerDescriptionLines.length">
           <span
             v-for="(line, lineIndex) in heroBannerDescriptionLines"
             :key="`hero-desc-line-${lineIndex}`"
@@ -494,8 +490,8 @@ function getCategoryLink(name) {
     </section>
 
     <section class="section category">
-      <h2>SUSANG RENTAL</h2>
-      <p class="section-sub">Professional Cinema Equipment Rental</p>
+      <h2>수상한렌탈</h2>
+      <p class="section-sub">시네마 촬영 장비 렌탈</p>
       <div ref="categoryGridRef" class="grid category-grid">
         <RouterLink
           v-for="item in state.categoryItems"
@@ -505,6 +501,7 @@ function getCategoryLink(name) {
         >
           <img
             v-if="item.imageUrl"
+            :key="`${item.id}-${item.imageUrl}`"
             :src="item.imageUrl"
             :alt="item.name"
             class="thumb thumb-img"

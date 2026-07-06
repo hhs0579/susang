@@ -3,14 +3,17 @@ import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { cameraProducts } from '../data/cameraData'
 import { formatCurrency, useCategoryProducts, isOptionOnlyProduct, getMinOptionExtraPrice } from '../composables/useCategoryProducts'
+import { useProductDetailRoute } from '../composables/useProductDetailRoute'
 import { displayOptionGroupTitle, isSingleOptionGroup } from '../utils/optionGroupLabels.js'
 import { applyProductOptionDefaults } from '../utils/applyProductOptionDefaults.js'
 import SiteHeader from '../components/SiteHeader.vue'
+import FadeInImg from '../components/FadeInImg.vue'
 
 const route = useRoute()
-const { getProductById } = useCategoryProducts('camera', cameraProducts)
+const { getProductByRouteParam } = useCategoryProducts('camera', cameraProducts)
 
-const product = computed(() => getProductById(route.params.id))
+const product = computed(() => getProductByRouteParam(route.params.id))
+useProductDetailRoute('camera', product)
 const optionGroups = computed(() => product.value?.options || [])
 const selectedImageIndex = ref(0)
 const selectedOptions = reactive({})
@@ -216,7 +219,7 @@ watch(
         <RouterLink to="/camera" class="back-link">&lt; Back to Category</RouterLink>
         <div class="detail-main-image">
           <button type="button" class="image-nav image-nav-left" @click="showPrevImage">&lt;</button>
-          <img :src="selectedImage" :alt="product.name" fetchpriority="high" decoding="async" />
+          <FadeInImg :src="selectedImage" :alt="product.name" fetchpriority="high" decoding="async" />
           <button type="button" class="image-nav image-nav-right" @click="showNextImage">&gt;</button>
         </div>
         <div class="detail-sub-images">
@@ -228,7 +231,7 @@ watch(
             :class="{ active: selectedImageIndex === index }"
             @click="selectImage(index)"
           >
-            <img
+            <FadeInImg
               :src="item"
               :alt="`${product.name} image ${index + 1}`"
               loading="lazy"
@@ -296,7 +299,7 @@ watch(
             v-if="Array.isArray(product.detailFooterImages) && product.detailFooterImages.length"
             class="detail-footer-images"
           >
-            <img
+            <FadeInImg
               v-for="(image, index) in product.detailFooterImages"
               :key="`detail-footer-${index}-${image}`"
               :src="image"

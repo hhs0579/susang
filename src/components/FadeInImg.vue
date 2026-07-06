@@ -1,6 +1,13 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { getCachedRemoteBlobUrl, isFirebaseStorageUrl, loadRemoteAsBlobUrl } from '../utils/runtimeImageCache'
+import {
+  getCachedRemoteBlobUrl,
+  isFirebaseStorageUrl,
+  loadRemoteAsBlobUrl,
+  resolveDisplayImageUrl,
+} from '../utils/runtimeImageCache'
+
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
   src: { type: String, default: '' },
@@ -8,7 +15,7 @@ const props = defineProps({
   imgClass: { type: [String, Array, Object], default: '' },
 })
 
-const resolvedSrc = ref('')
+const resolvedSrc = ref(resolveDisplayImageUrl(props.src))
 
 async function syncResolvedSrc(nextSrc) {
   const target = String(nextSrc || '').trim()
@@ -18,7 +25,6 @@ async function syncResolvedSrc(nextSrc) {
   }
 
   if (!isFirebaseStorageUrl(target)) {
-    // 로컬(/assets 등)은 즉시 반영해 지연 체감을 제거
     resolvedSrc.value = target
     return
   }
@@ -29,11 +35,9 @@ async function syncResolvedSrc(nextSrc) {
     return
   }
 
-  // 캐시가 없으면 우선 원본 URL로 즉시 표시하고, 백그라운드에서 blob 캐시 생성
-  resolvedSrc.value = target
   const blobUrl = await loadRemoteAsBlobUrl(target)
-  if (target === String(props.src || '').trim() && blobUrl && blobUrl !== target) {
-    resolvedSrc.value = blobUrl
+  if (target === String(props.src || '').trim()) {
+    resolvedSrc.value = blobUrl || target
   }
 }
 
@@ -44,10 +48,9 @@ watch(
   },
   { immediate: true },
 )
-
 </script>
 
 <template>
-  <img :src="resolvedSrc || src" :alt="alt" :class="imgClass" />
+  <img v-bind="$attrs" :src="resolvedSrc || src" :alt="alt" :class="imgClass" />
 </template>
 

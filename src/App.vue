@@ -1,5 +1,10 @@
 <template>
-  <RouterView />
+  <RouterView v-slot="{ Component, route }">
+    <KeepAlive>
+      <component :is="Component" v-if="route.meta.keepAlive" :key="route.name" />
+    </KeepAlive>
+    <component :is="Component" v-if="!route.meta.keepAlive" :key="route.fullPath" />
+  </RouterView>
   <a
     v-if="!isAdminRoute"
     href="http://pf.kakao.com/_xbxcxhhK"
@@ -33,6 +38,10 @@ import { RouterView, useRoute } from 'vue-router'
 import { collection, getDocs, limit, query } from 'firebase/firestore'
 import { db } from './firebase'
 import { isFirebaseStorageUrl, prewarmRemoteImage } from './utils/runtimeImageCache'
+import {
+  collectThumbUrlsFromCategoryCache,
+  warmAllCategoryProductCaches,
+} from './composables/useCategoryProducts'
 
 const isSplashVisible = ref(true)
 const splashVideoRef = ref(null)
@@ -177,6 +186,29 @@ async function continuePrewarmFirestoreThumbsInBackground() {
   })
 }
 
+/** 카테고리 캐시가 채워진 뒤 해당 카테고리 썸네일 추가 프리워밍 (스플래시와 별개) */
+function prewarmCategoryCacheThumbsInBackground() {
+  const orderedBuckets = collectThumbUrlsFromCategoryCache(48)
+  if (!orderedBuckets.length) return
+
+  const queue = []
+  let cursor = 0
+  while (orderedBuckets.some((bucket) => bucket.length > cursor)) {
+    for (const bucket of orderedBuckets) {
+      const url = bucket[cursor]
+      if (!url || splashWarmedUrls.has(url) || !isFirebaseStorageUrl(url)) continue
+      splashWarmedUrls.add(url)
+      queue.push(url)
+    }
+    cursor += 1
+  }
+  if (!queue.length) return
+
+  scheduleIdleTask(() => {
+    Promise.all(queue.map((url) => prewarmRemoteImage(url)))
+  })
+}
+
 async function showSplashUntilReady() {
   if (isAdminRoute.value) {
     isSplashVisible.value = false
@@ -199,9 +231,14 @@ async function showSplashUntilReady() {
 }
 
 onMounted(async () => {
+  if (!isAdminRoute.value) {
+    warmAllCategoryProductCaches()
+  }
   await showSplashUntilReady()
   if (!isAdminRoute.value) {
     continuePrewarmFirestoreThumbsInBackground()
+    prewarmCategoryCacheThumbsInBackground()
+    setTimeout(prewarmCategoryCacheThumbsInBackground, 2000)
   }
 })
 </script>

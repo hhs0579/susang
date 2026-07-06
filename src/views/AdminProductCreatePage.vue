@@ -7,6 +7,7 @@ import { db, firestoreDatabaseId, hasRequiredConfig, storage } from '../firebase
 import { useContentStore } from '../stores/contentStore'
 import { parseOptionsFromText } from '../utils/productOptionsAdmin.js'
 import { isDiscountPriceLockedCategory } from '../composables/useCategoryProducts'
+import { resolveProductSlug } from '../utils/productSlug'
 import { deleteStorageObjectByUrl } from '../utils/storageDelete.js'
 
 const { state: contentState } = useContentStore()
@@ -81,7 +82,6 @@ watch(
     if (enabled) {
       form.originalPrice = 0
       form.discountPrice = 0
-      form.baseComponentsText = ''
     }
   },
   { immediate: true },
@@ -153,11 +153,14 @@ function buildPayload() {
     section: form.section.trim(),
     subSections,
     name: form.name.trim(),
+    slug: resolveProductSlug({ name: form.name }),
     brand: form.brand.trim(),
-    originalPrice: Number(form.originalPrice || 0),
-    discountPrice: isDiscountPriceLockedCategory(form.category)
-      ? Number(form.originalPrice || 0)
-      : Number(form.discountPrice || 0),
+    originalPrice: form.optionOnlyPricing ? 0 : Number(form.originalPrice || 0),
+    discountPrice: form.optionOnlyPricing
+      ? 0
+      : isDiscountPriceLockedCategory(form.category)
+        ? Number(form.originalPrice || 0)
+        : Number(form.discountPrice || 0),
     priceDisplayText: form.priceDisplayText.trim(),
     titleExtraText: form.titleExtraText.trim(),
     detailFooterText: form.detailFooterText.trim(),
@@ -318,7 +321,7 @@ async function removeDetailFooterImage(index) {
         <input v-model="form.brand" type="text" placeholder="예: CANON" />
         <label class="admin-check-item admin-option-only-toggle">
           <input v-model="form.optionOnlyPricing" type="checkbox" />
-          <span>옵션가로만 판매 (원가/할인가/기본 구성품 사용 안 함)</span>
+          <span>옵션가로만 판매 (원가·할인가는 사용하지 않음, 기본 구성품은 표시용으로 입력 가능)</span>
         </label>
         <label class="admin-label">원가(숫자만)</label>
         <input
@@ -342,9 +345,9 @@ async function removeDetailFooterImage(index) {
           서포트 카테고리는 할인가를 제공하지 않으므로 정상가와 동일한 값으로 자동 저장됩니다.
         </p>
         <p class="admin-help">
-          ‘0원 시작 + 옵션가로 합산’ 상품(예: 필터)은 원가/할인가를 모두 0으로 두고,
-          기본 구성품은 비워둔 채 옵션 줄에 <code>옵션명 +가격</code> 형태로 입력하세요.
-          그러면 상세 페이지에서 옵션을 선택할 때만 금액이 더해집니다.
+          ‘0원 시작 + 옵션가로 합산’ 상품(예: 필터)은 이 옵션을 켜면 원가/할인가가 0으로 저장됩니다.
+          옵션 줄에 <code>옵션명 +가격</code> 형태로 입력하면 상세에서 선택 시 금액이 더해집니다.
+          구성 설명은 <strong>기본 구성품</strong>에 넣어도 됩니다(표시용).
         </p>
         <label class="admin-label">가격 표시 문구(선택)</label>
         <input v-model="form.priceDisplayText" type="text" placeholder="예: 카메라 대여시 무료" />
@@ -360,7 +363,6 @@ async function removeDetailFooterImage(index) {
         <textarea
           v-model="form.baseComponentsText"
           rows="5"
-          :disabled="form.optionOnlyPricing"
           placeholder="한 줄에 하나씩 입력&#10;예:&#10;CANON C400&#10;CFExpress Type B 1TB x 3ea&#10;CANON Charger x 1ea (요청시)"
         ></textarea>
         <label class="admin-label">옵션 (없으면 비워도 됨)</label>

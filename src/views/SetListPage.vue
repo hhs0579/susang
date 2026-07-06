@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { setProducts } from '../data/setData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { useSetSubCategoryTabs, resolveSetListSections } from '../composables/useSetCameraSectionTabs.js'
 import { sortSetListProducts } from '../utils/categoryListOrder.js'
@@ -75,7 +76,7 @@ function isSetVisible(item) {
           v-for="item in sortedSetItems"
           :key="item.id"
           v-show="isSetVisible(item)"
-          :to="`/set/${item.id}`"
+          :to="productDetailPath('set', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

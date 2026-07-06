@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { lensProducts } from '../data/lensData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { sortSupportListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
@@ -76,7 +77,7 @@ function isSupportVisible(item) {
           v-for="item in sortedSupportItems"
           :key="item.id"
           v-show="isSupportVisible(item)"
-          :to="`/support/${item.id}`"
+          :to="productDetailPath('support', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

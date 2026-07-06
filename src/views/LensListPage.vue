@@ -5,7 +5,8 @@ import { lensProducts } from '../data/lensData'
 const SUPPORT_SECTIONS = new Set(['WIRELESS FOCUS', 'MATTEBOX', 'FILTER'])
 const fallbackLensProducts = lensProducts.filter((item) => !SUPPORT_SECTIONS.has(item.section))
 
-import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { formatCurrency, useCategoryProducts } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { sortLensListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
@@ -112,7 +113,7 @@ function listPrice(item) {
           v-for="item in sortedLensItems"
           :key="item.id"
           v-show="isLensVisible(item)"
-          :to="`/lens/${item.id}`"
+          :to="productDetailPath('lens', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">
@@ -121,7 +122,7 @@ function listPrice(item) {
           <div class="camera-meta">
             <span>{{ item.brand }}</span>
             <strong>{{ item.name }}</strong>
-            <b>{{ item.priceDisplayText || formatCurrency(getDisplayHeadlinePrice(item)) }}</b>
+            <b>{{ item.priceDisplayText || formatCurrency(listPrice(item)) }}</b>
           </div>
         </RouterLink>
       </div>

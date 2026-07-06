@@ -2,6 +2,12 @@ import { computed, onUnmounted, ref } from 'vue'
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import { isFirebaseStorageUrl, prewarmRemoteImage } from '../utils/runtimeImageCache'
+import {
+  PRODUCT_CATEGORY_KEYS,
+  resolveProductSlug,
+  slugifyLegacyProductId,
+  slugifyProductName,
+} from '../utils/productSlug'
 
 const warmedImageUrls = new Set()
 
@@ -69,40 +75,40 @@ function normalizeProduct(raw, fallbackId, fallbackProduct = null, optionsMode =
   /** Firestore에 `images` 필드가 있으면(빈 배열 포함) 관리자 저장 내용을 그대로 쓰고, 없을 때만 로컬 데이터 폴백 */
   const hasStoredImagesArray = Array.isArray(raw.images)
 
+  const remoteImagesFromFields = [
+    String(raw.mainImage || raw.image || '').trim(),
+    ...(Array.isArray(raw.accessories) ? raw.accessories : []).map((url) => String(url || '').trim()),
+  ].filter(Boolean)
+
   const mergedImages = hasStoredImagesArray
     ? raw.images.map((url) => String(url || '').trim()).filter(Boolean)
-    : [...fallbackImages]
+    : remoteImagesFromFields.length
+      ? remoteImagesFromFields
+      : [...fallbackImages]
 
   const fallbackMainImage = fallbackProduct?.image || fallbackImages[0] || ''
   const mainImageRaw = hasStoredImagesArray
     ? String(mergedImages[0] || raw.mainImage || raw.image || '').trim()
     : String(raw.mainImage || raw.image || mergedImages[0] || '').trim()
-  const mainImage = hasStoredImagesArray
-    ? mainImageRaw
-    : isFirebaseStorageUrl(mainImageRaw) && fallbackMainImage
-      ? fallbackMainImage
-      : mainImageRaw || fallbackMainImage
+  const mainImage = mainImageRaw || fallbackMainImage
   const rawThumbImages = Array.isArray(raw.thumbImages)
     ? raw.thumbImages.map((url) => String(url || '').trim()).filter(Boolean)
     : []
-  const thumbnail = String(rawThumbImages[0] || raw.thumbImage || '').trim() || mainImage
+  const remoteThumb = String(rawThumbImages[0] || raw.thumbImage || '').trim()
+  const thumbnail = remoteThumb || mainImage || fallbackMainImage
 
   /** `images`가 있으면 갤러리는 오직 그 배열만 사용(레거시 `accessories` 필드는 무시해 삭제한 장이 다시 나오지 않게 함) */
   const rawAccessories = hasStoredImagesArray
     ? mergedImages.length > 1
       ? mergedImages.slice(1)
       : []
-    : raw.accessories || (mergedImages.length > 1 ? mergedImages.slice(1) : [])
+    : Array.isArray(raw.accessories) && raw.accessories.length
+      ? raw.accessories
+      : mergedImages.length > 1
+        ? mergedImages.slice(1)
+        : []
   const accessories = Array.isArray(rawAccessories)
-    ? rawAccessories
-        .map((url, index) => {
-          const u = String(url || '').trim()
-          if (!u) return null
-          if (hasStoredImagesArray) return u
-          if (isFirebaseStorageUrl(u) && fallbackImages[index + 1]) return fallbackImages[index + 1]
-          return u
-        })
-        .filter(Boolean)
+    ? rawAccessories.map((url) => String(url || '').trim()).filter(Boolean)
     : []
   const rawSubSections = Array.isArray(raw.subSections)
     ? raw.subSections
@@ -117,8 +123,12 @@ function normalizeProduct(raw, fallbackId, fallbackProduct = null, optionsMode =
     ),
   ]
 
+  const id = raw.id || fallbackId
+  const slug = resolveProductSlug(raw, id)
+
   return {
-    id: raw.id || fallbackId,
+    id,
+    slug,
     section: String(raw.section || fallbackProduct?.section || '').trim(),
     name: raw.name || '',
     brand: raw.brand || '',
@@ -242,6 +252,139 @@ function normalizePriceForCategory(product, categoryKey) {
   return { ...product, discountPrice: original }
 }
 
+/** @type {Map<string, { rawDocs: object[], loading: boolean, error: string, unsubscribe: (() => void) | null, refCount: number, listeners: Set<(entry: object) => void> }>} */
+const categoryCache = new Map()
+
+function getCategoryCacheKey(categoryKey) {
+  return String(categoryKey || '').trim().toLowerCase()
+}
+
+function getCategoryCacheEntry(categoryKey) {
+  const key = getCategoryCacheKey(categoryKey)
+  if (!categoryCache.has(key)) {
+    categoryCache.set(key, {
+      rawDocs: [],
+      loading: !!db,
+      error: '',
+      unsubscribe: null,
+      refCount: 0,
+      listeners: new Set(),
+    })
+  }
+  return categoryCache.get(key)
+}
+
+function notifyCategoryListeners(entry) {
+  entry.listeners.forEach((listener) => {
+    try {
+      listener(entry)
+    } catch {
+      /* ignore listener errors */
+    }
+  })
+}
+
+function normalizeCategoryDocs(rawDocs, categoryKey, fallbackById, optionsMode) {
+  const docs = rawDocs.map((doc) =>
+    normalizePriceForCategory(
+      normalizeProduct(doc, doc.id, fallbackById.get(doc.id), optionsMode),
+      categoryKey,
+    ),
+  )
+  return docs.sort((a, b) => {
+    const aOrder = Number.isFinite(Number(a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER
+    const bOrder = Number.isFinite(Number(b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return a.name.localeCompare(b.name)
+  })
+}
+
+function prewarmCategoryDocThumbs(rawDocs = []) {
+  if (!Array.isArray(rawDocs) || !rawDocs.length) return
+  for (const doc of rawDocs) {
+    const thumbFromArray = Array.isArray(doc.thumbImages) ? doc.thumbImages[0] : ''
+    const url = String(thumbFromArray || doc.thumbImage || doc.mainImage || doc.image || '').trim()
+    if (url && isFirebaseStorageUrl(url)) prewarmRemoteImage(url)
+  }
+}
+
+function ensureCategorySubscription(categoryKey, entry) {
+  if (!db || entry.unsubscribe) return
+  if (!entry.rawDocs.length) entry.loading = true
+
+  const q = query(collection(db, 'product'), where('category', '==', categoryKey))
+  entry.unsubscribe = onSnapshot(
+    q,
+    (snapshot) => {
+      entry.rawDocs = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+      entry.loading = false
+      entry.error = ''
+      notifyCategoryListeners(entry)
+      prewarmCategoryDocThumbs(entry.rawDocs)
+    },
+    (err) => {
+      entry.error = err?.message || '상품 데이터를 불러오지 못했습니다.'
+      entry.loading = false
+      notifyCategoryListeners(entry)
+    },
+  )
+}
+
+function acquireCategoryCache(categoryKey, listener) {
+  const entry = getCategoryCacheEntry(categoryKey)
+  entry.refCount += 1
+  entry.listeners.add(listener)
+  ensureCategorySubscription(categoryKey, entry)
+  listener(entry)
+  return () => {
+    entry.listeners.delete(listener)
+    entry.refCount = Math.max(0, entry.refCount - 1)
+  }
+}
+
+const warmedCategoryKeys = new Set()
+
+/** 앱 시작 시 모든 카테고리 Firestore 구독을 미리 시작해 첫 방문·재방문 모두 즉시 표시 */
+export function warmAllCategoryProductCaches(
+  categories = ['set', 'camera', 'lens', 'support', 'grip', 'monitor', 'light', 'intercom'],
+) {
+  if (!db) return
+  categories.forEach((categoryKey) => {
+    const key = getCategoryCacheKey(categoryKey)
+    if (warmedCategoryKeys.has(key)) return
+    warmedCategoryKeys.add(key)
+    ensureCategorySubscription(categoryKey, getCategoryCacheEntry(categoryKey))
+  })
+}
+
+/** 카테고리 캐시에서 썸네일 URL 수집 — 별도 getDocs 없이 프리워밍에 재사용 */
+export function collectThumbUrlsFromCategoryCache(perCategoryLimit = 14) {
+  const priority = ['set', 'camera', 'lens', 'support', 'grip', 'monitor', 'light', 'intercom']
+  const buckets = []
+
+  for (const categoryKey of priority) {
+    const entry = categoryCache.get(getCategoryCacheKey(categoryKey))
+    if (!entry?.rawDocs?.length) continue
+
+    const bucket = []
+    for (const doc of entry.rawDocs) {
+      if (bucket.length >= perCategoryLimit) break
+      const thumbFromArray = Array.isArray(doc.thumbImages) ? doc.thumbImages[0] : ''
+      const url = String(thumbFromArray || doc.thumbImage || doc.mainImage || doc.image || '').trim()
+      if (url) bucket.push(url)
+    }
+    if (bucket.length) buckets.push(bucket)
+  }
+
+  return buckets
+}
+
+export function prefetchCategoryPage(categoryKey) {
+  warmAllCategoryProductCaches([categoryKey])
+  const entry = categoryCache.get(getCategoryCacheKey(categoryKey))
+  if (entry?.rawDocs?.length) prewarmCategoryDocThumbs(entry.rawDocs)
+}
+
 export function useCategoryProducts(categoryKey, fallbackProducts = [], config = {}) {
   const optionsMode = config?.optionsMode || 'full'
   const thumbWarmupLimit = Number.isFinite(Number(config?.thumbnailWarmupLimit))
@@ -249,9 +392,6 @@ export function useCategoryProducts(categoryKey, fallbackProducts = [], config =
     : optionsMode === 'lite'
       ? 240
       : 24
-  const remoteProducts = ref([])
-  const loading = ref(true)
-  const error = ref('')
 
   const fallbackNormalized = computed(() =>
     fallbackProducts.map((item) =>
@@ -262,50 +402,100 @@ export function useCategoryProducts(categoryKey, fallbackProducts = [], config =
     () => new Map(fallbackNormalized.value.map((item) => [item.id, item])),
   )
 
-  let unsubscribe = null
-  if (db) {
-    const q = query(collection(db, 'product'), where('category', '==', categoryKey))
-    unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const docs = snapshot.docs.map((doc) =>
-          normalizePriceForCategory(
-            normalizeProduct({ id: doc.id, ...doc.data() }, doc.id, fallbackById.value.get(doc.id), optionsMode),
-            categoryKey,
-          ),
-        )
-        remoteProducts.value = docs.sort((a, b) => {
-          const aOrder = Number.isFinite(Number(a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER
-          const bOrder = Number.isFinite(Number(b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER
-          if (aOrder !== bOrder) return aOrder - bOrder
-          return a.name.localeCompare(b.name)
-        })
-        warmupProductThumbnails(remoteProducts.value, thumbWarmupLimit)
-        loading.value = false
-      },
-      (err) => {
-        error.value = err?.message || '상품 데이터를 불러오지 못했습니다.'
-        loading.value = false
-      },
+  const cacheEntry = getCategoryCacheEntry(categoryKey)
+  const remoteProducts = ref([])
+  const loading = ref(!cacheEntry.rawDocs.length && !!db)
+  const error = ref('')
+
+  if (cacheEntry.rawDocs.length) {
+    remoteProducts.value = normalizeCategoryDocs(
+      cacheEntry.rawDocs,
+      categoryKey,
+      fallbackById.value,
+      optionsMode,
     )
-  } else {
     loading.value = false
   }
 
+  const applyCacheEntry = (entry) => {
+    if (entry.rawDocs.length) {
+      remoteProducts.value = normalizeCategoryDocs(
+        entry.rawDocs,
+        categoryKey,
+        fallbackById.value,
+        optionsMode,
+      )
+      warmupProductThumbnails(remoteProducts.value, remoteProducts.value.length || thumbWarmupLimit)
+      loading.value = false
+    } else {
+      loading.value = entry.loading
+    }
+    error.value = entry.error
+  }
+
+  const releaseCategoryCache = acquireCategoryCache(categoryKey, applyCacheEntry)
+
   onUnmounted(() => {
-    if (unsubscribe) unsubscribe()
+    releaseCategoryCache()
   })
 
-  const products = computed(() => (remoteProducts.value.length ? remoteProducts.value : fallbackNormalized.value))
+  if (!db) {
+    loading.value = false
+  }
+
+  const products = computed(() => {
+    if (db && loading.value && !remoteProducts.value.length) return []
+    if (remoteProducts.value.length) return remoteProducts.value
+    return fallbackNormalized.value
+  })
 
   function getProductById(id) {
-    return products.value.find((item) => item.id === id)
+    return getProductByRouteParam(id, products.value)
   }
 
   return {
     products,
     getProductById,
+    getProductByRouteParam: (param) => getProductByRouteParam(param, products.value),
     loading,
     error,
   }
+}
+
+function matchesRouteParam(product, param) {
+  const key = String(param || '').trim().toLowerCase()
+  if (!key || !product) return false
+  return (
+    String(product.id || '').toLowerCase() === key ||
+    String(product.slug || '').toLowerCase() === key
+  )
+}
+
+export function getProductByRouteParam(param, products = []) {
+  if (!Array.isArray(products) || !products.length) return undefined
+  return products.find((item) => matchesRouteParam(item, param))
+}
+
+/** 루트 `/copy-of-...` 같은 잘못된 URL을 `/lens/상품-slug` 로 보내기 위한 조회 */
+export function findProductPathByRouteParam(param) {
+  const key = String(param || '').trim().toLowerCase()
+  if (!key) return null
+
+  for (const categoryKey of PRODUCT_CATEGORY_KEYS) {
+    const entry = categoryCache.get(getCategoryCacheKey(categoryKey))
+    if (!entry?.rawDocs?.length) continue
+
+    for (const doc of entry.rawDocs) {
+      const slug = resolveProductSlug(doc, doc.id)
+      if (
+        String(doc.id || '').toLowerCase() === key ||
+        slug === key ||
+        slugifyLegacyProductId(doc.id) === key ||
+        slugifyProductName(doc.name) === key
+      ) {
+        return `/${categoryKey}/${slug}`
+      }
+    }
+  }
+  return null
 }

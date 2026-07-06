@@ -1,5 +1,6 @@
 import { computed } from 'vue'
 import { useContentStore } from '../stores/contentStore'
+import { sanitizeCategoryKey } from '../utils/sanitizeCategoryKey'
 
 const ROUTE_BY_CATEGORY = {
   set: '/set',
@@ -13,8 +14,8 @@ const ROUTE_BY_CATEGORY = {
 }
 
 export function categoryPathFor(categoryKey) {
-  const key = String(categoryKey || '').trim().toLowerCase()
-  return ROUTE_BY_CATEGORY[key] || `/${key}`
+  const key = sanitizeCategoryKey(categoryKey)
+  return ROUTE_BY_CATEGORY[key] || (key ? `/${key}` : '/')
 }
 
 export function useCategoryNavigation() {
@@ -23,12 +24,19 @@ export function useCategoryNavigation() {
   const categoryTabs = computed(() => {
     const keys =
       Array.isArray(state.taxonomyCategories) && state.taxonomyCategories.length
-        ? state.taxonomyCategories
+        ? state.taxonomyCategories.map((key) => sanitizeCategoryKey(key)).filter(Boolean)
         : Object.keys(ROUTE_BY_CATEGORY)
-    return keys.map((key) => ({
-      label: String(key || '').toUpperCase(),
-      to: categoryPathFor(key),
-    }))
+    const seen = new Set()
+    return keys
+      .filter((key) => {
+        if (!key || seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map((key) => ({
+        label: key.toUpperCase(),
+        to: categoryPathFor(key),
+      }))
   })
 
   return {

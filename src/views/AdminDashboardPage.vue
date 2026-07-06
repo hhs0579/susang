@@ -23,6 +23,8 @@ import { resolveCameraListSection, resolveSetListSection } from '../composables/
 import { sortAdminProducts } from '../utils/categoryListOrder.js'
 import { isDiscountPriceLockedCategory } from '../composables/useCategoryProducts'
 import { deleteStorageObjectByUrl, deleteStorageUrls } from '../utils/storageDelete.js'
+import { sanitizeCategoryKey } from '../utils/sanitizeCategoryKey'
+import { resolveProductSlug } from '../utils/productSlug'
 
 const router = useRouter()
 const {
@@ -39,9 +41,7 @@ const {
 } = useContentStore()
 
 function normalizeCategory(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
+  return sanitizeCategoryKey(value)
 }
 
 /** 목록 카드에 보이는 가격을 사이트/수정 폼과 같은 규칙으로 맞춤 (Firestore raw 값만 쓰면 어긋남) */
@@ -119,6 +119,8 @@ const heroBannerDescriptionInput = ref(
     : '',
 )
 const isBannerMobileUploading = ref(false)
+const isHeroBannerMobileDraftSyncPaused = ref(false)
+const isHeroBannerDraftSyncPaused = ref(false)
 const bannerMobileMessage = ref('')
 function normalizeGuideTitleInput(s) {
   return String(s || '')
@@ -319,6 +321,7 @@ watch(
 watch(
   () => contentState.heroBannerImages,
   (value) => {
+    if (isHeroBannerDraftSyncPaused.value) return
     heroBannerImagesDraft.value = Array.isArray(value) ? [...value] : []
   },
   { immediate: true, deep: true },
@@ -327,6 +330,7 @@ watch(
 watch(
   () => contentState.heroBannerImagesMobile,
   (value) => {
+    if (isHeroBannerMobileDraftSyncPaused.value) return
     heroBannerImagesMobileDraft.value = Array.isArray(value) ? [...value] : []
   },
   { immediate: true, deep: true },
@@ -334,7 +338,7 @@ watch(
 watch(
   () => contentState.heroBannerTitle,
   (value) => {
-    heroBannerTitleInput.value = String(value || '')
+    heroBannerTitleInput.value = typeof value === 'string' ? value : String(value ?? '')
   },
   { immediate: true },
 )
@@ -425,7 +429,6 @@ watch(
     if (enabled) {
       form.originalPrice = 0
       form.discountPrice = 0
-      form.baseComponentsText = ''
     }
   },
   { immediate: true },
@@ -458,7 +461,7 @@ onMounted(() => {
       loading.value = false
 
       // 자동 정리:
-      //  1) 옵션가로만 판매 상품: 원가/할인가 0 + baseComponents 비움 강제
+      //  1) 옵션가로만 판매 상품: 원가/할인가 0 (기본 구성품 문구는 유지 가능)
       //  2) 서포트 카테고리: 할인가 ≠ 정상가 인 데이터를 정상가와 동일하게 동기화
       snapshot.docs.forEach((docSnap) => {
         const data = docSnap.data() || {}
@@ -472,7 +475,6 @@ onMounted(() => {
           const updates = {}
           if (orig !== 0) updates.originalPrice = 0
           if (disc !== 0) updates.discountPrice = 0
-          if (!baseEmpty) updates.baseComponents = []
           if (!data.optionOnlyPricing) updates.optionOnlyPricing = true
           if (Object.keys(updates).length) {
             updates.updatedAt = serverTimestamp()
@@ -676,11 +678,17 @@ function updateCategoryDescInput(id, desc) {
   isCategoryCardDirty.value = true
 }
 
-function saveCategoryCardSettings() {
-  updateCategoryItems(categoryCardDraftItems.value)
-  isCategoryCardDirty.value = false
-  bannerMessage.value = '카테고리 카드 설정이 저장되었습니다.'
-  showToast('카테고리 카드 설정이 저장되었습니다.')
+async function saveCategoryCardSettings() {
+  errorMessage.value = ''
+  try {
+    await updateCategoryItems(categoryCardDraftItems.value)
+    isCategoryCardDirty.value = false
+    bannerMessage.value = '카테고리 카드 설정이 저장되었습니다.'
+    showToast('카테고리 카드 설정이 저장되었습니다.')
+  } catch (error) {
+    errorMessage.value = error?.message || '카테고리 카드 저장에 실패했습니다.'
+    showToast('카테고리 카드 저장에 실패했습니다.')
+  }
 }
 
 function resetCategoryCardSettings() {
@@ -804,6 +812,7 @@ function buildPayload() {
     section: form.section.trim(),
     subSections,
     name: form.name.trim(),
+    slug: resolveProductSlug({ name: form.name }, selectedProduct.value?.id),
     brand: form.brand.trim(),
     originalPrice: form.optionOnlyPricing ? 0 : Number(form.originalPrice || 0),
     discountPrice: form.optionOnlyPricing
@@ -816,7 +825,7 @@ function buildPayload() {
     detailFooterText: form.detailFooterText.trim(),
     detailFooterImages: [...form.detailFooterImages],
     optionOnlyPricing: !!form.optionOnlyPricing,
-    baseComponents: form.optionOnlyPricing ? [] : parseBaseComponents(),
+    baseComponents: parseBaseComponents(),
     options,
     images: imageUrls,
     mainImage: imageUrls[0] || '',
@@ -984,13 +993,19 @@ async function resetHeroBanner() {
 async function removeHeroBannerAt(index) {
   const removed = heroBannerImagesDraft.value[index]
   const next = heroBannerImagesDraft.value.filter((_, i) => i !== index)
+  isHeroBannerDraftSyncPaused.value = true
   try {
     heroBannerImagesDraft.value = next.length ? next : ['/assets/images/main1.png']
     await updateHeroBannerImages(heroBannerImagesDraft.value)
     bannerMessage.value = '배너 구성이 저장되었습니다.'
     await deleteStorageObjectByUrl(storage, removed)
   } catch (error) {
+    heroBannerImagesDraft.value = Array.isArray(contentState.heroBannerImages)
+      ? [...contentState.heroBannerImages]
+      : []
     bannerMessage.value = error?.message || '배너 삭제에 실패했습니다.'
+  } finally {
+    isHeroBannerDraftSyncPaused.value = false
   }
 }
 
@@ -1012,16 +1027,27 @@ async function moveHeroBanner(index, direction) {
 async function saveHeroBannerMobile() {
   const url = heroBannerMobileInput.value.trim()
   if (!url) return
+  const cur = [...heroBannerImagesMobileDraft.value]
+  if (cur.includes(url)) {
+    bannerMobileMessage.value =
+      '이미 목록에 있는 주소입니다. 맨 앞·맨 뒤로 옮기려면 위·아래 버튼으로 순서를 조정하세요.'
+    showToast('이미 목록에 포함된 URL입니다.')
+    return
+  }
+  isHeroBannerMobileDraftSyncPaused.value = true
   try {
-    heroBannerImagesMobileDraft.value = [
-      url,
-      ...heroBannerImagesMobileDraft.value.filter((item) => item !== url),
-    ]
-    await updateHeroBannerImagesMobile(heroBannerImagesMobileDraft.value)
+    cur.push(url)
+    heroBannerImagesMobileDraft.value = cur
+    await updateHeroBannerImagesMobile(cur)
     bannerMobileMessage.value = '모바일 배너가 저장되었습니다.'
     showToast('모바일 배너가 저장되었습니다.')
   } catch (error) {
+    heroBannerImagesMobileDraft.value = Array.isArray(contentState.heroBannerImagesMobile)
+      ? [...contentState.heroBannerImagesMobile]
+      : []
     bannerMobileMessage.value = error?.message || '모바일 배너 저장에 실패했습니다.'
+  } finally {
+    isHeroBannerMobileDraftSyncPaused.value = false
   }
 }
 
@@ -1121,6 +1147,7 @@ async function saveDiscountTextContent() {
 async function clearHeroBannerMobile() {
   if (!window.confirm('모바일 전용 배너를 모두 제거할까요? (모바일에서도 PC 배너가 표시됩니다)')) return
   const previous = [...heroBannerImagesMobileDraft.value]
+  isHeroBannerMobileDraftSyncPaused.value = true
   try {
     heroBannerImagesMobileDraft.value = []
     await updateHeroBannerImagesMobile([])
@@ -1128,20 +1155,31 @@ async function clearHeroBannerMobile() {
     bannerMobileMessage.value = '모바일 전용 배너를 비웠습니다. 모바일에서는 PC 배너가 사용됩니다.'
     await deleteStorageUrls(storage, previous)
   } catch (error) {
+    heroBannerImagesMobileDraft.value = Array.isArray(contentState.heroBannerImagesMobile)
+      ? [...contentState.heroBannerImagesMobile]
+      : []
     bannerMobileMessage.value = error?.message || '모바일 배너 비우기에 실패했습니다.'
+  } finally {
+    isHeroBannerMobileDraftSyncPaused.value = false
   }
 }
 
 async function removeHeroBannerMobileAt(index) {
   const removed = heroBannerImagesMobileDraft.value[index]
   const next = heroBannerImagesMobileDraft.value.filter((_, i) => i !== index)
+  isHeroBannerMobileDraftSyncPaused.value = true
   try {
     heroBannerImagesMobileDraft.value = next
     await updateHeroBannerImagesMobile(next)
     bannerMobileMessage.value = '모바일 배너 구성이 저장되었습니다.'
     await deleteStorageObjectByUrl(storage, removed)
   } catch (error) {
+    heroBannerImagesMobileDraft.value = Array.isArray(contentState.heroBannerImagesMobile)
+      ? [...contentState.heroBannerImagesMobile]
+      : []
     bannerMobileMessage.value = error?.message || '모바일 배너 삭제에 실패했습니다.'
+  } finally {
+    isHeroBannerMobileDraftSyncPaused.value = false
   }
 }
 
@@ -1152,11 +1190,17 @@ async function moveHeroBannerMobile(index, direction) {
   const temp = next[index]
   next[index] = next[target]
   next[target] = temp
+  isHeroBannerMobileDraftSyncPaused.value = true
   try {
     heroBannerImagesMobileDraft.value = next
     await updateHeroBannerImagesMobile(next)
   } catch (error) {
+    heroBannerImagesMobileDraft.value = Array.isArray(contentState.heroBannerImagesMobile)
+      ? [...contentState.heroBannerImagesMobile]
+      : []
     bannerMobileMessage.value = error?.message || '모바일 배너 순서 저장에 실패했습니다.'
+  } finally {
+    isHeroBannerMobileDraftSyncPaused.value = false
   }
 }
 
@@ -1166,24 +1210,30 @@ async function uploadHeroBannerMobile(event) {
   if (!files.length) return
 
   isBannerMobileUploading.value = true
+  isHeroBannerMobileDraftSyncPaused.value = true
   bannerMobileMessage.value = ''
   try {
-    const uploaded = await Promise.all(
-      files.map(async (file) => {
-        const key = `products/banners/mobile/${Date.now()}-${file.name}`
-        const fileRef = storageRef(storage, key)
-        await uploadBytes(fileRef, file)
-        return getDownloadURL(fileRef)
-      }),
-    )
+    const base = Date.now()
+    const uploaded = []
+    for (let i = 0; i < files.length; i += 1) {
+      const file = files[i]
+      const key = `products/banners/mobile/${base}-${i}-${file.name}`
+      const fileRef = storageRef(storage, key)
+      await uploadBytes(fileRef, file)
+      uploaded.push(await getDownloadURL(fileRef))
+    }
     heroBannerImagesMobileDraft.value = [...heroBannerImagesMobileDraft.value, ...uploaded]
     await updateHeroBannerImagesMobile(heroBannerImagesMobileDraft.value)
     if (uploaded[0]) heroBannerMobileInput.value = uploaded[0]
     bannerMobileMessage.value = '모바일 배너 이미지가 업로드되었습니다.'
   } catch (error) {
+    heroBannerImagesMobileDraft.value = Array.isArray(contentState.heroBannerImagesMobile)
+      ? [...contentState.heroBannerImagesMobile]
+      : []
     bannerMobileMessage.value = error?.message || '모바일 배너 업로드에 실패했습니다.'
   } finally {
     isBannerMobileUploading.value = false
+    isHeroBannerMobileDraftSyncPaused.value = false
     event.target.value = ''
   }
 }
@@ -1340,36 +1390,24 @@ function showToast(message) {
         </div>
         <div class="admin-banner-text-preview">
           <p class="admin-banner-preview-label">실시간 미리보기</p>
-          <h3>{{ heroBannerTitleInput || '감독이 운영하는 감독을 위한 렌탈' }}</h3>
-          <p>
+          <h3 v-if="heroBannerTitleInput.trim()">{{ heroBannerTitleInput.trim() }}</h3>
+          <p v-if="heroBannerDescriptionInput.split('\n').map((item) => item.trim()).filter(Boolean).length">
             <span
-              v-for="(line, idx) in (heroBannerDescriptionInput
+              v-for="(line, idx) in heroBannerDescriptionInput
                 .split('\n')
                 .map((item) => item.trim())
-                .filter(Boolean))"
+                .filter(Boolean)"
               :key="`banner-text-preview-${idx}`"
               class="hero-desc-line"
             >
               {{ line }}
             </span>
-            <span
-              v-if="!heroBannerDescriptionInput.split('\n').map((item) => item.trim()).filter(Boolean).length"
-              class="hero-desc-line"
-            >
-              수상한렌탈은 수상한움직임 프로덕션 소속 렌탈샵입니다.
-            </span>
-            <span
-              v-if="!heroBannerDescriptionInput.split('\n').map((item) => item.trim()).filter(Boolean).length"
-              class="hero-desc-line"
-            >
-              촬영감독이 운영하며 감독님들께 저렴하고
-            </span>
-            <span
-              v-if="!heroBannerDescriptionInput.split('\n').map((item) => item.trim()).filter(Boolean).length"
-              class="hero-desc-line"
-            >
-              실속 있는 장비 세팅으로 찾아뵙겠습니다.
-            </span>
+          </p>
+          <p
+            v-if="!heroBannerTitleInput.trim() && !heroBannerDescriptionInput.split('\n').map((item) => item.trim()).filter(Boolean).length"
+            class="admin-help"
+          >
+            홈에서는 제목·설명이 비어 있으면 표시되지 않습니다.
           </p>
         </div>
       </div>
@@ -1380,6 +1418,7 @@ function showToast(message) {
       <p class="admin-help">
         모바일(폭 768px 이하)에서 사용할 배너입니다. 등록하지 않으면 PC 배너가 그대로 사용됩니다.<br />
         <strong>2장 이상</strong> 등록해야 모바일 자동 슬라이드가 동작합니다. 1장만 등록하면 첫 화면은 그 이미지가 보이고, 이어지는 슬라이드는 PC 배너가 사용됩니다.<br />
+        여러 장을 한 번에 선택하면 <strong>파일 선택 순서대로</strong> 목록 끝에 붙습니다. 맨 위(#1)가 첫 슬라이드입니다. URL로 추가할 때도 목록 <strong>맨 뒤</strong>에 붙으며, 순서는 위·아래 버튼으로 바꿀 수 있습니다.<br />
         모바일은 화면이 좁아 좌우가 잘려보일 수 있으니, 세로 비율이 큰 이미지(권장 1:1 또는 4:5) 사용을 추천합니다.
       </p>
       <img
@@ -1834,7 +1873,7 @@ function showToast(message) {
         <input v-model="form.brand" type="text" placeholder="예: CANON" />
         <label class="admin-check-item admin-option-only-toggle">
           <input v-model="form.optionOnlyPricing" type="checkbox" />
-          <span>옵션가로만 판매 (원가/할인가/기본 구성품 사용 안 함)</span>
+          <span>옵션가로만 판매 (원가·할인가는 사용하지 않음, 기본 구성품은 표시용으로 입력 가능)</span>
         </label>
         <label class="admin-label">원가(숫자만)</label>
         <input
@@ -1858,9 +1897,9 @@ function showToast(message) {
           서포트 카테고리는 할인가를 제공하지 않으므로 정상가와 동일한 값으로 자동 저장됩니다.
         </p>
         <p class="admin-help">
-          ‘0원 시작 + 옵션가로 합산’ 상품(예: 필터)은 원가/할인가를 모두 0으로 두고,
-          기본 구성품은 비워둔 채 옵션 줄에 <code>옵션명 +가격</code> 형태로 입력하세요.
-          그러면 상세 페이지에서 옵션을 선택할 때만 금액이 더해집니다.
+          ‘0원 시작 + 옵션가로 합산’ 상품(예: 필터)은 이 옵션을 켜면 원가/할인가가 0으로 저장됩니다.
+          옵션 줄에 <code>옵션명 +가격</code> 형태로 입력하면 상세에서 선택 시 금액이 더해집니다.
+          구성 설명은 <strong>기본 구성품</strong>에 넣어도 됩니다(표시용, 본체 가격과는 별개).
         </p>
         <label class="admin-label">가격 표시 문구(선택)</label>
         <input v-model="form.priceDisplayText" type="text" placeholder="예: 조명기 대여시 무료" />
@@ -1876,7 +1915,6 @@ function showToast(message) {
         <textarea
           v-model="form.baseComponentsText"
           rows="5"
-          :disabled="form.optionOnlyPricing"
           placeholder="한 줄에 하나씩 입력&#10;예:&#10;CANON C400&#10;CFExpress Type B 1TB x 3ea&#10;CANON Charger x 1ea (요청시)"
         ></textarea>
         <label class="admin-label">옵션 (없으면 비워도 됨)</label>

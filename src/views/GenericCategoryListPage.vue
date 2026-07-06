@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import SiteHeader from '../components/SiteHeader.vue'
 import SiteFooter from '../components/SiteFooter.vue'
@@ -67,7 +68,7 @@ function isVisibleItem(item) {
           v-for="item in sortedItems"
           :key="item.id"
           v-show="isVisibleItem(item)"
-          :to="`/${categoryKey}/${item.id}`"
+          :to="productDetailPath(categoryKey, item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

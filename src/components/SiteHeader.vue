@@ -2,10 +2,15 @@
 import { ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
+import { prefetchCategoryPage } from '../composables/useCategoryProducts'
 
 const route = useRoute()
 const isMobileMenuOpen = ref(false)
 const { categoryTabs: menuItems } = useCategoryNavigation()
+
+function prefetchMenuCategory(label) {
+  prefetchCategoryPage(String(label || '').trim().toLowerCase())
+}
 
 function isActiveMenu(label) {
   const key = String(label || '').toLowerCase()
@@ -35,7 +40,7 @@ watch(
     <RouterLink to="/" class="logo">
       <img
         src="/assets/images/logo1.png"
-        alt="SUSANG RENTAL HOUSE"
+        alt="수상한렌탈"
         class="logo-image"
       />
     </RouterLink>
@@ -59,6 +64,8 @@ watch(
         class="menu-item"
         :class="{ active: isActiveMenu(item.label) }"
         @click="closeMobileMenu"
+        @mouseenter="prefetchMenuCategory(item.label)"
+        @focus="prefetchMenuCategory(item.label)"
       >
         {{ item.label }}
       </RouterLink>

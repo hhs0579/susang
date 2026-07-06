@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { lightProducts } from '../data/lightData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { sortLightListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
@@ -88,7 +89,7 @@ function isLightVisible(item) {
           v-for="item in sortedLightItems"
           :key="item.id"
           v-show="isLightVisible(item)"
-          :to="`/light/${item.id}`"
+          :to="productDetailPath('light', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

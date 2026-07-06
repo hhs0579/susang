@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { monitorProducts } from '../data/monitorData'
 import { formatCurrency, useCategoryProducts, getDisplayHeadlinePrice } from '../composables/useCategoryProducts'
+import { productDetailPath } from '../utils/productSlug'
 import { useCategoryNavigation } from '../composables/useCategoryNavigation'
 import { sortMonitorListProducts } from '../utils/categoryListOrder.js'
 import SiteHeader from '../components/SiteHeader.vue'
@@ -98,7 +99,7 @@ function isMonitorVisible(item) {
           v-for="item in sortedMonitorItems"
           :key="item.id"
           v-show="isMonitorVisible(item)"
-          :to="`/monitor/${item.id}`"
+          :to="productDetailPath('monitor', item)"
           class="camera-card"
         >
           <div class="camera-thumb-wrap">

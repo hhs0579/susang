@@ -1,8 +1,8 @@
 <template>
   <footer class="footer">
     <div class="footer-left">
-      <img src="/assets/images/logo2.png" alt="susang rental" class="footer-logo" />
-      <p>상호명 주식회사 수상한렌탈</p>
+      <img src="/assets/images/logo2.png" alt="수상한렌탈" class="footer-logo" />
+      <p>수상한렌탈</p>
       <p>대표 김민국</p>
       <p>주소 서울시 마포구 잔다리로3길 7 1층</p>
       <p>사업자등록증번호 326-88-03299</p>
@@ -12,7 +12,7 @@
     </div>
     <div class="footer-right">
       <p class="footer-account">830501-04-254913</p>
-      <p>국민은행 / 예금주 : 주식회사 수상한렌탈</p>
+      <p>국민은행 / 예금주 : 수상한렌탈</p>
       <p class="footer-social">
         <a href="https://www.instagram.com/susang_rental" target="_blank" rel="noreferrer" class="footer-social-link" aria-label="인스타그램">
           <svg viewBox="0 0 24 24" class="footer-social-icon" aria-hidden="true">

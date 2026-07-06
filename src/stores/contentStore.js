@@ -1,6 +1,12 @@
 import { reactive } from 'vue'
 import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../firebase'
+import {
+  isCopyPrefixedCategory,
+  sanitizeCategoryKey,
+  sanitizeCategoryLabel,
+  sanitizeTaxonomyCategories,
+} from '../utils/sanitizeCategoryKey'
 
 const CONTENT_STORAGE_KEY = 'susang_site_content_v1'
 const SITE_SETTINGS_COLLECTION = 'siteSettings'
@@ -99,7 +105,7 @@ const defaultContent = {
       step: '02',
       title: 'Payment',
       subtitle: 'Account',
-      body: '국민은행 830501-04-254913 / 주식회사 수상한렌탈',
+      body: '국민은행 830501-04-254913 / 수상한렌탈',
       extraTitle: 'Payment information',
       extraBody:
         '세금계산서 발급을 통한 계좌이체 / 카드결제 / 계좌이체 가능합니다.\n홈페이지에 쓰여있는 금액은 vat 포함되어 있지 않는 금액입니다.',
@@ -324,16 +330,89 @@ function toUpdatedAtMs(value) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-function mergeCategoryItems(storedItems = []) {
-  const storedMap = new Map(storedItems.map((item) => [item.name, item]))
+/**
+ * 로컬 저장된 카테고리 카드 + (있으면) taxonomy 순서로 병합.
+ * 예전 구현은 defaultCategoryItems 길이로만 잘라 추가 메인 카테고리가 사라져,
+ * 상단 메뉴(taxonomy)와 홈 카드 그리드(categoryItems)가 어긋날 수 있었음.
+ */
+function mergeCategoryItems(storedItems = [], taxonomyCategoriesLower = null) {
+  const list = Array.isArray(storedItems) ? storedItems : []
+  const storedMap = new Map()
+  for (const item of list) {
+    const label = sanitizeCategoryLabel(item?.name)
+    if (!label) continue
+    const prev = storedMap.get(label)
+    const incomingCopy = isCopyPrefixedCategory(item?.name)
+    const prevCopy = prev ? isCopyPrefixedCategory(prev.name) : false
+    if (!prev) {
+      storedMap.set(label, { ...item, name: label })
+      continue
+    }
+    const keep = prevCopy && !incomingCopy ? item : prev
+    const drop = prevCopy && !incomingCopy ? prev : item
+    storedMap.set(label, {
+      ...keep,
+      name: label,
+      desc: String(keep?.desc || drop?.desc || '').trim() || `${label} 카테고리`,
+      imageUrl: String(keep?.imageUrl || drop?.imageUrl || '').trim(),
+      id: keep?.id != null ? keep.id : drop?.id,
+    })
+  }
+  const defaultMap = new Map(defaultCategoryItems.map((item) => [item.name, item]))
 
-  return defaultCategoryItems.map((item) => {
-    const stored = storedMap.get(item.name)
-    if (!stored) return { ...item }
+  let orderUpper = []
+  if (Array.isArray(taxonomyCategoriesLower) && taxonomyCategoriesLower.length) {
+    orderUpper = taxonomyCategoriesLower
+      .map((k) => sanitizeCategoryLabel(k))
+      .filter(Boolean)
+  } else if (storedMap.size) {
+    orderUpper = list.map((item) => String(item.name || '').trim().toUpperCase()).filter(Boolean)
+  } else {
+    orderUpper = defaultCategoryItems.map((item) => item.name)
+  }
+
+  const seen = new Set()
+  const order = []
+  for (const name of orderUpper) {
+    if (name && !seen.has(name)) {
+      seen.add(name)
+      order.push(name)
+    }
+  }
+  for (const name of storedMap.keys()) {
+    if (seen.has(name)) continue
+    seen.add(name)
+    order.push(name)
+  }
+  if (!order.length) {
+    order.push(...defaultCategoryItems.map((item) => item.name))
+  }
+
+  return order.map((name, index) => {
+    const stored = storedMap.get(name)
+    const base = defaultMap.get(name)
+    if (stored && base) {
+      return {
+        ...base,
+        id: stored.id != null ? stored.id : base.id,
+        desc: String(stored.desc || '').trim() || base.desc,
+        imageUrl: String(stored.imageUrl || '').trim() || base.imageUrl,
+      }
+    }
+    if (stored) {
+      return {
+        id: stored.id,
+        name: String(stored.name || name).trim().toUpperCase() || name,
+        desc: String(stored.desc || '').trim() || `${name} 카테고리`,
+        imageUrl: String(stored.imageUrl || '').trim(),
+      }
+    }
+    if (base) return { ...base }
     return {
-      ...item,
-      desc: stored.desc || item.desc,
-      imageUrl: stored.imageUrl || item.imageUrl,
+      id: Date.now() + index,
+      name,
+      desc: `${name} 카테고리`,
+      imageUrl: '',
     }
   })
 }
@@ -371,7 +450,14 @@ function getInitialContent() {
   const storedBannerImagesMobile = Array.isArray(stored.heroBannerImagesMobile)
     ? stored.heroBannerImagesMobile.map((url) => String(url || '').trim()).filter(Boolean)
     : []
-  const storedBannerTitle = String(stored.heroBannerTitle || '').trim()
+  const hasStoredBannerTitle = Object.prototype.hasOwnProperty.call(stored, 'heroBannerTitle')
+  const storedBannerTitle = hasStoredBannerTitle
+    ? String(stored.heroBannerTitle ?? '').trim()
+    : String(stored.heroBannerTitle || '').trim()
+  const hasStoredBannerDescription = Object.prototype.hasOwnProperty.call(
+    stored,
+    'heroBannerDescriptionLines',
+  )
   const storedBannerDescriptionLines = Array.isArray(stored.heroBannerDescriptionLines)
     ? stored.heroBannerDescriptionLines.map((line) => String(line || '').trim()).filter(Boolean)
     : []
@@ -386,19 +472,27 @@ function getInitialContent() {
     heroBannerImageUrl,
     heroBannerImages: mergedHeroBannerImages,
     heroBannerImagesMobile: storedBannerImagesMobile,
-    heroBannerTitle: storedBannerTitle || defaultContent.heroBannerTitle,
-    heroBannerDescriptionLines: storedBannerDescriptionLines.length
+    heroBannerTitle: hasStoredBannerTitle
+      ? storedBannerTitle
+      : storedBannerTitle || defaultContent.heroBannerTitle,
+    heroBannerDescriptionLines: hasStoredBannerDescription
       ? storedBannerDescriptionLines
-      : [...defaultContent.heroBannerDescriptionLines],
+      : storedBannerDescriptionLines.length
+        ? storedBannerDescriptionLines
+        : [...defaultContent.heroBannerDescriptionLines],
     guideInfoCardTexts,
     guideSteps,
     discountTextContent,
     discountRoundColumns,
-    categoryItems: mergeCategoryItems(stored.categoryItems || []),
+    categoryItems: mergeCategoryItems(
+      stored.categoryItems || [],
+      sanitizeTaxonomyCategories(stored.taxonomyCategories) ||
+        (Array.isArray(stored.taxonomyCategories) && stored.taxonomyCategories.length
+          ? stored.taxonomyCategories.map((k) => sanitizeCategoryKey(k)).filter(Boolean)
+          : null),
+    ),
     taxonomyCategories:
-      Array.isArray(stored.taxonomyCategories) && stored.taxonomyCategories.length
-        ? stored.taxonomyCategories
-        : defaultContent.taxonomyCategories,
+      sanitizeTaxonomyCategories(stored.taxonomyCategories) || defaultContent.taxonomyCategories,
     taxonomySectionsByCategory: mergedSections,
     arrivalItems: Array.isArray(stored.arrivalItems) && stored.arrivalItems.length ? stored.arrivalItems : defaultContent.arrivalItems,
   }
@@ -411,12 +505,13 @@ const state = reactive({
   heroBannerImageUrl: initial.heroBannerImageUrl,
   heroBannerImages: [...(initial.heroBannerImages || [initial.heroBannerImageUrl])],
   heroBannerImagesMobile: [...(initial.heroBannerImagesMobile || [])],
-  heroBannerTitle: initial.heroBannerTitle || defaultContent.heroBannerTitle,
-  heroBannerDescriptionLines: [
-    ...(initial.heroBannerDescriptionLines?.length
-      ? initial.heroBannerDescriptionLines
-      : defaultContent.heroBannerDescriptionLines),
-  ],
+  heroBannerTitle:
+    typeof initial.heroBannerTitle === 'string'
+      ? initial.heroBannerTitle
+      : defaultContent.heroBannerTitle,
+  heroBannerDescriptionLines: Array.isArray(initial.heroBannerDescriptionLines)
+    ? [...initial.heroBannerDescriptionLines]
+    : [...defaultContent.heroBannerDescriptionLines],
   guideInfoCardTexts: normalizeGuideInfoCardTexts(initial.guideInfoCardTexts),
   guideSteps: normalizeGuideSteps(initial.guideSteps),
   discountTextContent: normalizeDiscountTextContent(initial.discountTextContent),
@@ -465,22 +560,54 @@ function removeArrivalItem(id) {
   }
 }
 
+function normalizeCategoryItemsPayload(items = []) {
+  if (!Array.isArray(items)) return []
+  const merged = new Map()
+  items.forEach((item, index) => {
+    const name = sanitizeCategoryLabel(item?.name)
+    if (!name) return
+    const next = {
+      id: item?.id != null ? item.id : index + 1,
+      name,
+      desc: String(item?.desc || '').trim(),
+      imageUrl: String(item?.imageUrl || '').trim(),
+    }
+    const prev = merged.get(name)
+    if (!prev) {
+      merged.set(name, next)
+      return
+    }
+    const preferNext = isCopyPrefixedCategory(prev.name) && !isCopyPrefixedCategory(item?.name)
+    const base = preferNext ? next : prev
+    const other = preferNext ? prev : next
+    merged.set(name, {
+      ...base,
+      desc: base.desc || other.desc,
+      imageUrl: base.imageUrl || other.imageUrl,
+      id: base.id != null ? base.id : other.id,
+    })
+  })
+  return [...merged.values()]
+}
+
 function updateCategoryImage(id, imageUrl) {
   const item = state.categoryItems.find((entry) => entry.id === id)
-  if (!item) return
-  item.imageUrl = imageUrl
+  if (!item) return Promise.resolve()
+  item.imageUrl = String(imageUrl || '').trim()
+  state.contentUpdatedAt = Date.now()
   persist()
+  return persistHeroBannersRemote()
 }
 
 function updateCategoryItems(items = []) {
-  state.categoryItems = [...items]
+  state.categoryItems = normalizeCategoryItemsPayload(items)
+  state.contentUpdatedAt = Date.now()
   persist()
+  return persistHeroBannersRemote()
 }
 
 function saveTaxonomyConfig(categories = [], sectionsByCategory = {}) {
-  const normalizedCategories = categories
-    .map((item) => String(item || '').trim().toLowerCase())
-    .filter(Boolean)
+  const normalizedCategories = (sanitizeTaxonomyCategories(categories) || []).filter(Boolean)
 
   state.taxonomyCategories = normalizedCategories
   state.taxonomySectionsByCategory = { ...sectionsByCategory }
@@ -498,19 +625,13 @@ function saveTaxonomyConfig(categories = [], sectionsByCategory = {}) {
       }
     )
   })
+  state.contentUpdatedAt = Date.now()
   persist()
+  return persistHeroBannersRemote()
 }
 
-/** 모든 기기에서 동일한 배너가 보이도록 Firestore에도 동기화 */
-function persistHeroBannersRemote() {
-  if (!db) {
-    persist()
-    return Promise.resolve()
-  }
-  const nextUpdatedAt = Math.max(Date.now(), Number(state.contentUpdatedAt || 0))
-  state.contentUpdatedAt = nextUpdatedAt
-  persist()
-  const payload = {
+function buildHeroBannerRemotePayload(updatedAt) {
+  return {
     heroBannerImages: [...state.heroBannerImages],
     heroBannerImagesMobile: [...state.heroBannerImagesMobile],
     heroBannerTitle: state.heroBannerTitle,
@@ -519,11 +640,38 @@ function persistHeroBannersRemote() {
     guideSteps: [...state.guideSteps],
     discountTextContent: { ...state.discountTextContent },
     discountRoundColumns: encodeDiscountRoundColumnsForFirestore(state.discountRoundColumns),
-    updatedAt: nextUpdatedAt,
+    categoryItems: normalizeCategoryItemsPayload(state.categoryItems),
+    taxonomyCategories: [...state.taxonomyCategories],
+    updatedAt,
   }
+}
+
+/** 로컬 편집 직후 도착한 이전 Firestore 스냅샷이 최신 목록을 되돌리지 않도록 판별 */
+function isRemoteSiteSettingsStale(remoteUpdatedAt) {
+  const localUpdatedAt = Number(state.contentUpdatedAt || 0)
+  if (remoteUpdatedAt <= 0) return localUpdatedAt > 0
+  return remoteUpdatedAt < localUpdatedAt
+}
+
+/** 모든 기기에서 동일한 배너·카테고리 카드가 보이도록 Firestore에도 동기화 */
+function persistHeroBannersRemote() {
+  if (!db) {
+    persist()
+    return Promise.resolve()
+  }
+  persist()
   const task = lastRemoteWritePromise
     .catch(() => {})
-    .then(() => setDoc(doc(db, SITE_SETTINGS_COLLECTION, HERO_BANNER_DOC_ID), payload, { merge: true }))
+    .then(() => {
+      const nextUpdatedAt = Math.max(Date.now(), Number(state.contentUpdatedAt || 0))
+      state.contentUpdatedAt = nextUpdatedAt
+      persist()
+      return setDoc(
+        doc(db, SITE_SETTINGS_COLLECTION, HERO_BANNER_DOC_ID),
+        buildHeroBannerRemotePayload(nextUpdatedAt),
+        { merge: true },
+      )
+    })
   lastRemoteWritePromise = task
   return task
     .then(() => {})
@@ -537,6 +685,7 @@ function persistHeroBannersRemote() {
 function applyHeroBannerRemoteData(data) {
   if (!data || typeof data !== 'object') return
   const remoteUpdatedAt = toUpdatedAtMs(data.updatedAt)
+  if (isRemoteSiteSettingsStale(remoteUpdatedAt)) return
 
   const hasKey = (key) => Object.prototype.hasOwnProperty.call(data, key)
 
@@ -558,17 +707,13 @@ function applyHeroBannerRemoteData(data) {
     state.heroBannerImagesMobile = mobileRaw.map((url) => String(url || '').trim()).filter(Boolean)
   }
   if (hasKey('heroBannerTitle')) {
-    const titleRaw = String(data.heroBannerTitle || '').trim()
-    state.heroBannerTitle = titleRaw || defaultContent.heroBannerTitle
+    state.heroBannerTitle = String(data.heroBannerTitle ?? '').trim()
   }
   if (hasKey('heroBannerDescriptionLines')) {
     const descriptionRaw = Array.isArray(data.heroBannerDescriptionLines)
       ? data.heroBannerDescriptionLines
       : []
-    const nextDescription = descriptionRaw.map((line) => String(line || '').trim()).filter(Boolean)
-    state.heroBannerDescriptionLines = nextDescription.length
-      ? nextDescription
-      : [...defaultContent.heroBannerDescriptionLines]
+    state.heroBannerDescriptionLines = descriptionRaw.map((line) => String(line || '').trim()).filter(Boolean)
   }
   // 필드가 없거나 빈 배열이면 기본 카드(제목에 \\n 포함)로 덮어쓰지 않음 — 로컬 저장·이전 state 유지
   if (Array.isArray(data.guideInfoCardTexts) && data.guideInfoCardTexts.length > 0) {
@@ -585,12 +730,40 @@ function applyHeroBannerRemoteData(data) {
     state.discountRoundColumns = decodeDiscountRoundColumnsFromFirestore(data.discountRoundColumns)
   }
 
+  const rawTaxonomy = Array.isArray(data.taxonomyCategories) ? data.taxonomyCategories : []
+  const cleanedTaxonomy = sanitizeTaxonomyCategories(rawTaxonomy)
+  const taxonomyNeedsRepair =
+    rawTaxonomy.some(
+      (item) =>
+        isCopyPrefixedCategory(item) ||
+        sanitizeCategoryKey(item) !== String(item || '').trim().toLowerCase(),
+    ) || (cleanedTaxonomy && cleanedTaxonomy.length !== rawTaxonomy.length)
+
+  if (cleanedTaxonomy?.length) {
+    state.taxonomyCategories = cleanedTaxonomy
+  }
+
+  const rawCategoryItems = Array.isArray(data.categoryItems) ? data.categoryItems : []
+  const categoryItemsNeedRepair = rawCategoryItems.some((item) => isCopyPrefixedCategory(item?.name))
+
+  if (rawCategoryItems.length > 0) {
+    const taxonomy = cleanedTaxonomy?.length ? cleanedTaxonomy : state.taxonomyCategories
+    state.categoryItems = mergeCategoryItems(rawCategoryItems, taxonomy)
+  }
+
+  const shouldPersistTaxonomyRepair =
+    (taxonomyNeedsRepair || categoryItemsNeedRepair) && !isRemoteSiteSettingsStale(remoteUpdatedAt)
+
   if (remoteUpdatedAt > 0) {
     state.contentUpdatedAt = remoteUpdatedAt
   } else if (Number(state.contentUpdatedAt || 0) <= 0) {
     state.contentUpdatedAt = Date.now()
   }
   persist()
+  if (shouldPersistTaxonomyRepair) {
+    state.contentUpdatedAt = Date.now()
+    void persistHeroBannersRemote()
+  }
 }
 
 async function fetchHeroBannersOnce() {
@@ -660,14 +833,12 @@ function updateHeroBannerImagesMobile(images = []) {
 }
 
 function updateHeroBannerText(title = '', descriptionLines = []) {
-  const nextTitle = String(title || '').trim() || defaultContent.heroBannerTitle
+  const nextTitle = String(title ?? '').trim()
   const nextDescription = Array.isArray(descriptionLines)
     ? descriptionLines.map((line) => String(line || '').trim()).filter(Boolean)
     : []
   state.heroBannerTitle = nextTitle
-  state.heroBannerDescriptionLines = nextDescription.length
-    ? nextDescription
-    : [...defaultContent.heroBannerDescriptionLines]
+  state.heroBannerDescriptionLines = nextDescription
   state.contentUpdatedAt = Date.now()
   persist()
   return persistHeroBannersRemote()
